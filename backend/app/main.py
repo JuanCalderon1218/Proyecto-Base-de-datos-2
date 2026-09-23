@@ -1,20 +1,42 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from pymongo import ASCENDING, DESCENDING
 
-from backend.app.database.connection import client
+from backend.app.database.connection import (
+    client,
+    database,
+)
+
 from backend.app.routes.events import router as events_router
+from backend.app.routes.alerts import router as alerts_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Comprobar conexión con MongoDB
+
     await client.admin.command("ping")
-    print("MongoDB conectado correctamente")
+
+    print(
+        "MongoDB conectado correctamente"
+    )
+
+    await database["events"].create_index(
+        [
+            ("user_id", ASCENDING),
+            ("timestamp", DESCENDING),
+        ]
+    )
+
+    await database["alerts"].create_index(
+        [
+            ("user_id", ASCENDING),
+            ("created_at", DESCENDING),
+        ]
+    )
 
     yield
 
-    # Cerrar conexión al apagar FastAPI
     await client.close()
 
 
@@ -27,6 +49,7 @@ app = FastAPI(
 
 
 app.include_router(events_router)
+app.include_router(alerts_router)
 
 
 @app.get("/")
@@ -45,6 +68,7 @@ async def health_check():
 
 @app.get("/health/db")
 async def database_health():
+
     await client.admin.command("ping")
 
     return {

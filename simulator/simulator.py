@@ -74,6 +74,33 @@ def send_event(event: dict) -> None:
     except Exception as error:
         print(f"[ERROR] {error}")
 
+def simulate_behavior_deviation():
+    print("\n--- DESVIACIÓN DE COMPORTAMIENTO ---\n")
+
+    # Crear historial normal para usuario05
+    for _ in range(25):
+        event = {
+            "user_id": "usuario05",
+            "operation": "UPDATE",
+            "collection": "productos",
+            "records_affected": random.randint(5, 15),
+            "success": True,
+        }
+
+        send_event(event)
+        time.sleep(0.05)
+
+    print("\n--- EVENTO ANÓMALO ---\n")
+
+    anomalous_event = {
+        "user_id": "usuario05",
+        "operation": "UPDATE",
+        "collection": "productos",
+        "records_affected": 350,
+        "success": True,
+    }
+
+    send_event(anomalous_event)
 
 def generate_normal_event() -> dict:
     """
@@ -225,11 +252,13 @@ def simulate_unusual_hour() -> None:
 
 
 def main():
+    
     parser = argparse.ArgumentParser(
         description=(
             "Simulador de eventos para "
             "el Detector de Anomalías NoSQL"
         )
+        
     )
 
     parser.add_argument(
@@ -240,6 +269,7 @@ def main():
             "failures",
             "high-frequency",
             "unusual-hour",
+            "behavior-deviation",
         ],
         default="normal",
         help="Tipo de simulación",
@@ -284,6 +314,8 @@ def main():
     elif args.mode == "unusual-hour":
         simulate_unusual_hour()
 
+    elif args.mode == "behavior-deviation":
+        simulate_behavior_deviation()
 
 if __name__ == "__main__":
     main()
