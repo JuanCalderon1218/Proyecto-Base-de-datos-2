@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from backend.app.database.connection import (
     database,
@@ -145,14 +145,38 @@ async def create_event(
 
 
 @router.get("")
-async def get_events():
+async def get_events(
+    user_id: str | None = None,
+    operation: str | None = None,
+    anomalous: bool | None = None,
+    success: bool | None = None,
+    limit: int = Query(
+        default=100,
+        ge=1,
+        le=500,
+    ),
+):
+    query = {}
+
+    if user_id:
+        query["user_id"] = user_id
+
+    if operation:
+        query["operation"] = operation
+
+    if anomalous is not None:
+        query["is_anomalous"] = anomalous
+
+    if success is not None:
+        query["success"] = success
+
     events = []
 
     cursor = (
         database["events"]
-        .find()
+        .find(query)
         .sort("timestamp", -1)
-        .limit(100)
+        .limit(limit)
     )
 
     async for document in cursor:
@@ -163,3 +187,28 @@ async def get_events():
         events.append(document)
 
     return events
+
+
+@router.get("/{event_id}")
+async def get_event(
+    event_id: str,
+):
+    event = await database[
+        "events"
+    ].find_one(
+        {
+            "event_id": event_id
+        }
+    )
+
+    if event is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Evento no encontrado",
+        )
+
+    event["_id"] = str(
+        event["_id"]
+    )
+
+    return event

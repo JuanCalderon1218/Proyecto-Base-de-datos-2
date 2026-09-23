@@ -3,6 +3,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pymongo import ASCENDING, DESCENDING
 
+from backend.app.routes.statistics import (
+    router as statistics_router,
+)
+
+from backend.app.routes.dashboard import (
+    router as dashboard_router,
+)
+
 from backend.app.database.connection import (
     client,
     database,
@@ -47,7 +55,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-
+app.include_router(statistics_router)
+app.include_router(dashboard_router)
 app.include_router(events_router)
 app.include_router(alerts_router)
 

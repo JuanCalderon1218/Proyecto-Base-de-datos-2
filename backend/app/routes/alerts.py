@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from datetime import datetime
 
-from backend.app.database.connection import (
-    database,
-)
+from fastapi import APIRouter, HTTPException, Query
+
+from backend.app.database.connection import database
+from backend.app.schemas.alert import AlertStatusUpdate
 
 
 router = APIRouter(
@@ -12,14 +13,38 @@ router = APIRouter(
 
 
 @router.get("")
-async def get_alerts():
+async def get_alerts(
+    severity: str | None = None,
+    status: str | None = None,
+    user_id: str | None = None,
+    operation: str | None = None,
+    limit: int = Query(
+        default=100,
+        ge=1,
+        le=500,
+    ),
+):
+    query = {}
+
+    if severity:
+        query["severity"] = severity
+
+    if status:
+        query["status"] = status
+
+    if user_id:
+        query["user_id"] = user_id
+
+    if operation:
+        query["operation"] = operation
+
     alerts = []
 
     cursor = (
         database["alerts"]
-        .find()
+        .find(query)
         .sort("created_at", -1)
-        .limit(100)
+        .limit(limit)
     )
 
     async for alert in cursor:
@@ -55,3 +80,43 @@ async def get_alert(
     )
 
     return alert
+
+
+@router.patch("/{alert_id}/status")
+async def update_alert_status(
+    alert_id: str,
+    data: AlertStatusUpdate,
+):
+    alert = await database[
+        "alerts"
+    ].find_one(
+        {
+            "alert_id": alert_id
+        }
+    )
+
+    if alert is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Alerta no encontrada",
+        )
+
+    await database["alerts"].update_one(
+        {
+            "alert_id": alert_id
+        },
+        {
+            "$set": {
+                "status": data.status,
+                "updated_at": datetime.utcnow(),
+            }
+        },
+    )
+
+    return {
+        "message": (
+            "Estado actualizado correctamente"
+        ),
+        "alert_id": alert_id,
+        "status": data.status,
+    }
