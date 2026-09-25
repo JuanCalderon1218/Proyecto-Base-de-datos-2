@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Usuarios | Detector NoSQL
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/styles.css"
+    >
+
+</head>
+
+
+<body>
+
+<div class="app-layout">
+
+
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                DA
+            </div>
+
+            <div>
+
+                <strong>
+                    Detector
+                </strong>
+
+                <small>
+                    NoSQL Monitor
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a
+                href="/dashboard"
+                class="nav-item"
+            >
+                Dashboard
+            </a>
+
+            <a
+                href="/events-page"
+                class="nav-item"
+            >
+                Eventos
+            </a>
+
+            <a
+                href="/alerts-page"
+                class="nav-item"
+            >
+                Alertas
+            </a>
+
+            <a
+                href="/activity-analysis"
+                class="nav-item"
+            >
+                Análisis de Actividad
+            </a>
+
+            <a
+                href="/users-page"
+                class="nav-item active"
+            >
+                Usuarios
+            </a>
+
+        </nav>
+
+
+        <button
+            onclick="logout()"
+            class="logout-button"
+        >
+            Cerrar sesión
+        </button>
+
+    </aside>
+
+
+
+    <main class="main-content">
+
+
+        <header class="topbar">
+
+            <div>
+
+                <h1>
+                    Gestión de Usuarios
+                </h1>
+
+                <p>
+                    Administración de cuentas
+                    de acceso al sistema
+                </p>
+
+            </div>
+
+
+            <div class="user-box">
+
+                <span id="currentUsername">
+                    Usuario
+                </span>
+
+                <small id="currentRole">
+                </small>
+
+            </div>
+
+        </header>
+
+
+
+        <section class="user-actions-bar">
+
+            <div>
+
+                <h2>
+                    Usuarios del sistema
+                </h2>
+
+                <p>
+                    Administra las cuentas
+                    de los analistas.
+                </p>
+
+            </div>
+
+
+            <button
+                id="openCreateUser"
+                class="primary-button table-button"
+            >
+                + Crear analista
+            </button>
+
+        </section>
+
+
+
+        <section class="table-card">
+
+            <div class="table-wrapper">
+
+                <table class="data-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Usuario
+                            </th>
+
+                            <th>
+                                Rol
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Creado
+                            </th>
+
+                            <th>
+                                Creado por
+                            </th>
+
+                            <th>
+                                Acciones
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="usersTableBody">
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="empty-table"
+                            >
+                                Cargando usuarios...
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+
+<!-- MODAL CREAR USUARIO -->
+
+<div
+    id="createUserModal"
+    class="modal"
+>
+
+    <div class="modal-content user-modal">
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2>
+                    Crear analista
+                </h2>
+
+                <small>
+                    Nueva cuenta de acceso
+                </small>
+
+            </div>
+
+
+            <button
+                id="closeCreateUser"
+                class="modal-close"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form
+            id="createUserForm"
+            class="user-form"
+        >
+
+            <div class="form-group">
+
+                <label for="newUsername">
+                    Usuario
+                </label>
+
+                <input
+                    id="newUsername"
+                    type="text"
+                    required
+                    minlength="3"
+                    maxlength="50"
+                    autocomplete="off"
+                    placeholder="Ej. maria"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="newPassword">
+                    Contraseña
+                </label>
+
+                <input
+                    id="newPassword"
+                    type="password"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
+                    placeholder="Mínimo 8 caracteres"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="confirmPassword">
+                    Confirmar contraseña
+                </label>
+
+                <input
+                    id="confirmPassword"
+                    type="password"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Rol
+                </label>
+
+                <input
+                    type="text"
+                    value="Analyst"
+                    disabled
+                >
+
+            </div>
+
+
+            <div
+                id="createUserError"
+                class="error-message"
+            ></div>
+
+
+            <button
+                type="submit"
+                class="primary-button"
+            >
+                Crear usuario
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+<!-- MODAL CONTRASEÑA -->
+
+<div
+    id="passwordModal"
+    class="modal"
+>
+
+    <div class="modal-content user-modal">
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2>
+                    Restablecer contraseña
+                </h2>
+
+                <small id="passwordUsername">
+                </small>
+
+            </div>
+
+
+            <button
+                id="closePasswordModal"
+                class="modal-close"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form
+            id="passwordForm"
+            class="user-form"
+        >
+
+            <div class="form-group">
+
+                <label for="resetPassword">
+                    Nueva contraseña
+                </label>
+
+                <input
+                    id="resetPassword"
+                    type="password"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
+                >
+
+            </div>
+
+
+            <div
+                id="passwordError"
+                class="error-message"
+            ></div>
+
+
+            <button
+                type="submit"
+                class="primary-button"
+            >
+                Actualizar contraseña
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<script src="/static/js/auth.js"></script>
+
+<script src="/static/js/users.js"></script>
+
+</body>
+
+</html>

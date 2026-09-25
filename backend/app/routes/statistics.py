@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
+from fastapi import APIRouter, Depends, Query
+
+from backend.app.auth.security import get_current_user
 from fastapi import APIRouter, Query
 
 from backend.app.database.connection import database
@@ -28,7 +31,7 @@ BUSINESS_MONGO_TIMEZONE = (
 # ---------------------------------
 
 @router.get("/alerts-by-severity")
-async def alerts_by_severity():
+async def alerts_by_severity(current_user=Depends(get_current_user)):
 
     pipeline = [
         {
@@ -75,7 +78,7 @@ async def alerts_by_severity():
 # ---------------------------------
 
 @router.get("/events-by-operation")
-async def events_by_operation():
+async def events_by_operation(current_user=Depends(get_current_user)):
 
     pipeline = [
         {
@@ -125,6 +128,7 @@ async def activity_by_user(
         ge=1,
         le=50,
     ),
+current_user=Depends(get_current_user)
 ):
 
     pipeline = [
@@ -201,6 +205,7 @@ async def daily_activity(
         ge=1,
         le=90,
     ),
+current_user=Depends(get_current_user)
 ):
 
     # Creamos la zona horaria local

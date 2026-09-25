@@ -1,7 +1,23 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+from backend.app.routes.analysis import (
+    router as analysis_router,
+)
+
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from fastapi import FastAPI
 from pymongo import ASCENDING, DESCENDING
+
+from backend.app.routes.users import (
+    router as users_router,
+)
+
+from backend.app.routes.auth import (
+    router as auth_router,
+)
 
 from backend.app.routes.statistics import (
     router as statistics_router,
@@ -36,6 +52,11 @@ async def lifespan(app: FastAPI):
         ]
     )
 
+    await database["users"].create_index(
+    "username",
+    unique=True,
+    )
+
     await database["alerts"].create_index(
         [
             ("user_id", ASCENDING),
@@ -55,17 +76,56 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+PROJECT_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[2]
+)
+
+FRONTEND_DIR = (
+    PROJECT_ROOT
+    / "frontend"
+)
+
+
+app.mount(
+    "/static",
+    StaticFiles(
+        directory=FRONTEND_DIR
+    ),
+    name="static",
+)
+
+app.include_router(analysis_router)
+app.include_router(users_router)
+app.include_router(auth_router)
 app.include_router(statistics_router)
 app.include_router(dashboard_router)
 app.include_router(events_router)
 app.include_router(alerts_router)
 
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Detector de Anomalías NoSQL funcionando"
-    }
+@app.get(
+    "/",
+    include_in_schema=False,
+)
+async def login_page():
+
+    return FileResponse(
+        FRONTEND_DIR
+        / "login.html"
+    )
+
+@app.get(
+    "/dashboard",
+    include_in_schema=False,
+)
+async def dashboard_page():
+
+    return FileResponse(
+        FRONTEND_DIR
+        / "dashboard.html"
+    )
 
 
 @app.get("/health")
@@ -84,3 +144,58 @@ async def database_health():
         "status": "ok",
         "database": "connected"
     }
+
+@app.get(
+    "/events-page",
+    include_in_schema=False,
+)
+async def events_page():
+
+    return FileResponse(
+        FRONTEND_DIR
+        / "events.html"
+    )
+
+@app.get(
+    "/alerts-page",
+    include_in_schema=False,
+)
+async def alerts_page():
+
+    return FileResponse(
+        FRONTEND_DIR
+        / "alerts.html"
+    ) 
+
+@app.get(
+    "/statistics-page",
+    include_in_schema=False,
+)
+async def statistics_page():
+
+    return FileResponse(
+        FRONTEND_DIR
+        / "statistics.html"
+    )
+
+@app.get(
+    "/activity-analysis",
+    include_in_schema=False,
+)
+async def activity_analysis_page(): 
+
+    return FileResponse(
+        FRONTEND_DIR
+        / "activity-analysis.html"
+    )
+
+@app.get(
+    "/users-page",
+    include_in_schema=False,
+)
+async def users_page():
+
+    return FileResponse(
+        FRONTEND_DIR
+        / "users.html"
+    )

@@ -2,6 +2,10 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, status
 
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from backend.app.auth.security import get_current_user
+
 from backend.app.database.connection import (
     database,
 )
@@ -153,8 +157,8 @@ async def get_events(
     limit: int = Query(
         default=100,
         ge=1,
-        le=500,
-    ),
+        le=500),
+    current_user=Depends(get_current_user),
 ):
     query = {}
 
@@ -192,6 +196,7 @@ async def get_events(
 @router.get("/{event_id}")
 async def get_event(
     event_id: str,
+current_user=Depends(get_current_user),
 ):
     event = await database[
         "events"

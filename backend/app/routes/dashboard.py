@@ -1,7 +1,17 @@
 from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from backend.app.auth.security import get_current_user
 
 from backend.app.database.connection import database
+from fastapi import (
+    APIRouter,
+    Depends,
+)
 
+from backend.app.auth.security import (
+    get_current_user,
+)
 
 router = APIRouter(
     prefix="/dashboard",
@@ -10,8 +20,10 @@ router = APIRouter(
 
 
 @router.get("/summary")
-async def dashboard_summary():
-
+async def dashboard_summary(
+    current_user=Depends(
+        get_current_user),
+):
     total_events = await database[
         "events"
     ].count_documents({})

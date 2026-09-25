@@ -2,6 +2,10 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from backend.app.auth.security import get_current_user
+
 from backend.app.database.connection import database
 from backend.app.schemas.alert import AlertStatusUpdate
 
@@ -23,6 +27,7 @@ async def get_alerts(
         ge=1,
         le=500,
     ),
+current_user=Depends(get_current_user)
 ):
     query = {}
 
@@ -60,6 +65,7 @@ async def get_alerts(
 @router.get("/{alert_id}")
 async def get_alert(
     alert_id: str,
+current_user=Depends(get_current_user)
 ):
     alert = await database[
         "alerts"
@@ -86,6 +92,7 @@ async def get_alert(
 async def update_alert_status(
     alert_id: str,
     data: AlertStatusUpdate,
+current_user=Depends(get_current_user)
 ):
     alert = await database[
         "alerts"
