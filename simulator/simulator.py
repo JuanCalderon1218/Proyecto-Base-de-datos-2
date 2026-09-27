@@ -265,6 +265,88 @@ def simulate_unusual_hour() -> None:
 
     send_event(event)
 
+def simulate_demo_normal_activity() -> None:
+    """
+    Genera actividad normal con una hora
+    controlada para la demostracion.
+    """
+
+    peru_timezone = timezone(
+        timedelta(hours=-5)
+    )
+
+    now = datetime.now(peru_timezone)
+
+    normal_timestamp = now.replace(
+        hour=14,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
+    for _ in range(10):
+        event = generate_normal_event()
+
+        event["timestamp"] = (
+            normal_timestamp.isoformat()
+        )
+
+        send_event(event)
+
+        time.sleep(0.1)
+
+def simulate_demo() -> None:
+    """
+    Ejecuta una demostracion completa
+    de los principales escenarios.
+    """
+
+    print(
+        "\n=============================="
+        "\n DEMOSTRACION DEL SISTEMA"
+        "\n==============================\n"
+    )
+
+    print(
+    "\n[1/6] Actividad normal"
+    )
+    simulate_demo_normal_activity()
+
+    print(
+        "\n[2/6] Eliminacion masiva"
+    )
+    simulate_mass_delete()
+
+    print(
+        "\n[3/6] Fallos repetidos"
+    )
+    simulate_failures(
+        count=5,
+        delay=0.1,
+    )
+
+    print(
+        "\n[4/6] Alta frecuencia"
+    )
+    simulate_high_frequency(
+        count=110,
+    )
+
+    print(
+        "\n[5/6] Horario inusual"
+    )
+    simulate_unusual_hour()
+
+    print(
+        "\n[6/6] Desviacion de comportamiento"
+    )
+    simulate_behavior_deviation()
+
+    print(
+        "\n=============================="
+        "\n DEMOSTRACION FINALIZADA"
+        "\n==============================\n"
+    )
 
 def main():
     
@@ -279,13 +361,14 @@ def main():
     parser.add_argument(
         "--mode",
         choices=[
-            "normal",
-            "mass-delete",
-            "failures",
-            "high-frequency",
-            "unusual-hour",
-            "behavior-deviation",
-        ],
+    		"normal",
+    		"mass-delete",
+    		"failures",
+    		"high-frequency",
+    		"unusual-hour",
+    		"behavior-deviation",
+    		"demo",
+	],
         default="normal",
         help="Tipo de simulación",
     )
@@ -331,6 +414,9 @@ def main():
 
     elif args.mode == "behavior-deviation":
         simulate_behavior_deviation()
+
+    elif args.mode == "demo":
+        simulate_demo()
 
 if __name__ == "__main__":
     main()
