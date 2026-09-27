@@ -1,12 +1,19 @@
 import argparse
+import os
 import random
 import time
 from datetime import datetime, timedelta, timezone
 
 import httpx
+from dotenv import load_dotenv
 
 
-API_URL = "http://127.0.0.1:8000/events"
+load_dotenv()
+
+API_URL = os.getenv(
+    "EVENT_API_URL",
+    "http://127.0.0.1:8000/events",
+)
 
 
 USERS = [
