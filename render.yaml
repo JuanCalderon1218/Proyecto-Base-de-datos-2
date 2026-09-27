@@ -25,3 +25,6 @@ services:
 
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "30"
+
+      - key: EVENT_API_KEY
+        sync: false
