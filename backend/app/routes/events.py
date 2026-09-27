@@ -1,11 +1,21 @@
+from secrets import compare_digest
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    status,
+)
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-
-from backend.app.auth.security import get_current_user
-
+from backend.app.auth.security import (
+    get_current_user,
+)
+from backend.app.config.settings import (
+    settings,
+)
 from backend.app.database.connection import (
     database,
 )
@@ -26,12 +36,40 @@ router = APIRouter(
 )
 
 
+# ---------------------------------
+# Seguridad para fuentes externas
+# ---------------------------------
+
+def verify_event_api_key(
+    x_api_key: str | None = Header(
+        default=None,
+        alias="X-API-Key",
+    ),
+):
+    if (
+        x_api_key is None
+        or not compare_digest(
+            x_api_key,
+            settings.event_api_key,
+        )
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key no valida",
+        )
+
+
+# ---------------------------------
+# Crear y analizar evento
+# ---------------------------------
+
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
 )
 async def create_event(
     event: EventCreate,
+    _=Depends(verify_event_api_key),
 ):
     document = event.model_dump()
 
@@ -148,6 +186,10 @@ async def create_event(
     return document
 
 
+# ---------------------------------
+# Listar eventos
+# ---------------------------------
+
 @router.get("")
 async def get_events(
     user_id: str | None = None,
@@ -157,8 +199,11 @@ async def get_events(
     limit: int = Query(
         default=100,
         ge=1,
-        le=500),
-    current_user=Depends(get_current_user),
+        le=500,
+    ),
+    current_user=Depends(
+        get_current_user
+    ),
 ):
     query = {}
 
@@ -193,10 +238,16 @@ async def get_events(
     return events
 
 
+# ---------------------------------
+# Obtener evento por ID
+# ---------------------------------
+
 @router.get("/{event_id}")
 async def get_event(
     event_id: str,
-current_user=Depends(get_current_user),
+    current_user=Depends(
+        get_current_user
+    ),
 ):
     event = await database[
         "events"

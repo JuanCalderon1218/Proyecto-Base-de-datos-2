@@ -15,6 +15,11 @@ API_URL = os.getenv(
     "http://127.0.0.1:8000/events",
 )
 
+EVENT_API_KEY = os.getenv(
+    "EVENT_API_KEY",
+    "",
+)
+
 
 USERS = [
     "usuario01",
@@ -47,10 +52,13 @@ def send_event(event: dict) -> None:
 
     try:
         response = httpx.post(
-            API_URL,
-            json=event,
-            timeout=5.0,
-        )
+    	API_URL,
+    	json=event,
+    	headers={
+        	"X-API-Key": EVENT_API_KEY,
+    	},
+    	timeout=5.0,
+	)
 
         response.raise_for_status()
 
