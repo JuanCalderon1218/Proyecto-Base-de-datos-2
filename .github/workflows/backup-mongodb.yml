@@ -21,25 +21,72 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Instalar herramientas MongoDB
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mongodb-database-tools
+      - name: Instalar dependencias
+        run: pip install pymongo dnspython
 
-      - name: Generar backup
+      - name: Generar backup de MongoDB Atlas
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
         run: |
-          mkdir -p backup
-          mongodump --uri="$MONGO_URI" --db=anomaly_detector --archive=backup/mongodb-backup.archive --gzip
+          python - <<'PY'
+          import os
+          import gzip
+          from pathlib import Path
+          from datetime import datetime, timezone
 
-      - name: Generar reporte
-        run: |
-          echo "# Reporte de Backup MongoDB" > backup/reporte.md
-          echo "" >> backup/reporte.md
-          echo "Estado: COMPLETADO" >> backup/reporte.md
-          echo "Fecha UTC: $(date -u)" >> backup/reporte.md
-          echo "Base de datos: anomaly_detector" >> backup/reporte.md
+          from pymongo import MongoClient
+          from bson.json_util import dumps
+
+          client = MongoClient(os.environ["MONGO_URI"])
+          client.admin.command("ping")
+
+          carpeta = Path("backup")
+          carpeta.mkdir(exist_ok=True)
+
+          ignorar = {"admin", "local", "config"}
+          bases = [
+              db for db in client.list_database_names()
+              if db not in ignorar
+          ]
+
+          reporte = [
+              "# Reporte de Backup MongoDB",
+              "",
+              f"Fecha UTC: {datetime.now(timezone.utc)}",
+              "Estado: COMPLETADO",
+              "",
+              "Bases respaldadas:"
+          ]
+
+          for nombre_bd in bases:
+              db = client[nombre_bd]
+              carpeta_bd = carpeta / nombre_bd
+              carpeta_bd.mkdir(exist_ok=True)
+
+              for coleccion in db.list_collection_names():
+                  documentos = list(db[coleccion].find({}))
+
+                  archivo = carpeta_bd / f"{coleccion}.json.gz"
+
+                  with gzip.open(
+                      archivo,
+                      "wt",
+                      encoding="utf-8"
+                  ) as f:
+                      f.write(dumps(documentos))
+
+                  reporte.append(
+                      f"- {nombre_bd}.{coleccion}: "
+                      f"{len(documentos)} documentos"
+                  )
+
+          (carpeta / "reporte.md").write_text(
+              "\n".join(reporte),
+              encoding="utf-8"
+          )
+
+          print("Backup completado correctamente")
+          PY
 
       - name: Subir respaldo como artefacto
         uses: actions/upload-artifact@v4
