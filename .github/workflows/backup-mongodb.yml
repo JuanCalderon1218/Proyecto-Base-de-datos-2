@@ -1,0 +1,49 @@
+name: Backup automatico MongoDB
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar herramientas MongoDB
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mongodb-database-tools
+
+      - name: Generar backup
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+        run: |
+          mkdir -p backup
+          mongodump --uri="$MONGO_URI" --db=anomaly_detector --archive=backup/mongodb-backup.archive --gzip
+
+      - name: Generar reporte
+        run: |
+          echo "# Reporte de Backup MongoDB" > backup/reporte.md
+          echo "" >> backup/reporte.md
+          echo "Estado: COMPLETADO" >> backup/reporte.md
+          echo "Fecha UTC: $(date -u)" >> backup/reporte.md
+          echo "Base de datos: anomaly_detector" >> backup/reporte.md
+
+      - name: Subir respaldo como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: mongodb-backup-${{ github.run_number }}
+          path: backup/
+          retention-days: 30
