@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Eventos | Detector NoSQL</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/styles.css"
+    >
+</head>
+
+<body>
+
+<div class="app-layout">
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            <div class="brand-icon">
+                DA
+            </div>
+
+            <div>
+                <strong>Detector</strong>
+                <small>NoSQL Monitor</small>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <a
+                href="/dashboard"
+                class="nav-item"
+            >
+                Dashboard
+            </a>
+
+            <a
+                href="/events-page"
+                class="nav-item active"
+            >
+                Eventos
+            </a>
+
+            <a
+    href="/alerts-page"
+    class="nav-item"
+>
+    Alertas
+</a>
+
+           <a
+    href="/activity-analysis"
+    class="nav-item"
+>
+    Análisis de Actividad
+</a>
+
+<a
+    href="/users-page"
+    class="nav-item admin-nav-item"
+    style="display: none;"
+>
+    Usuarios
+</a>
+
+        </nav>
+
+        <button
+            onclick="logout()"
+            class="logout-button"
+        >
+            Cerrar sesión
+        </button>
+
+    </aside>
+
+
+    <main class="main-content">
+
+        <header class="topbar">
+
+            <div>
+                <h1>Eventos</h1>
+
+                <p>
+                    Historial de operaciones analizadas
+                </p>
+            </div>
+
+            <div class="user-box">
+
+                <span id="currentUsername">
+                    Usuario
+                </span>
+
+                <small id="currentRole"></small>
+
+            </div>
+
+        </header>
+
+
+        <!-- FILTROS -->
+
+        <section class="filters-card">
+
+            <div class="filter-group">
+
+                <label for="filterUser">
+                    Usuario
+                </label>
+
+                <input
+                    id="filterUser"
+                    type="text"
+                    placeholder="usuario01"
+                >
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="filterOperation">
+                    Operación
+                </label>
+
+                <select id="filterOperation">
+
+                    <option value="">
+                        Todas
+                    </option>
+
+                    <option value="READ">
+                        READ
+                    </option>
+
+                    <option value="INSERT">
+                        INSERT
+                    </option>
+
+                    <option value="UPDATE">
+                        UPDATE
+                    </option>
+
+                    <option value="DELETE">
+                        DELETE
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="filterAnomalous">
+                    Tipo
+                </label>
+
+                <select id="filterAnomalous">
+
+                    <option value="">
+                        Todos
+                    </option>
+
+                    <option value="true">
+                        Anómalos
+                    </option>
+
+                    <option value="false">
+                        Normales
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="filterSuccess">
+                    Resultado
+                </label>
+
+                <select id="filterSuccess">
+
+                    <option value="">
+                        Todos
+                    </option>
+
+                    <option value="true">
+                        Exitosos
+                    </option>
+
+                    <option value="false">
+                        Fallidos
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-actions">
+
+                <button
+                    id="applyFilters"
+                    class="primary-button table-button"
+                >
+                    Filtrar
+                </button>
+
+                <button
+                    id="clearFilters"
+                    class="secondary-button"
+                >
+                    Limpiar
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- RESUMEN -->
+
+        <section class="events-summary">
+
+            <span>
+                Mostrando
+                <strong id="eventCount">
+                    0
+                </strong>
+                eventos
+            </span>
+
+            <button
+                id="refreshEvents"
+                class="secondary-button"
+            >
+                Actualizar
+            </button>
+
+        </section>
+
+
+        <!-- TABLA -->
+
+        <section class="table-card">
+
+            <div class="table-wrapper">
+
+                <table class="data-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Operación</th>
+                            <th>Colección</th>
+                            <th>Registros</th>
+                            <th>Resultado</th>
+                            <th>Análisis</th>
+                            <th>Severidad</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="eventsTableBody">
+
+                        <tr>
+                            <td
+                                colspan="8"
+                                class="empty-table"
+                            >
+                                Cargando eventos...
+                            </td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<script src="/static/js/auth.js"></script>
+<script src="/static/js/events.js"></script>
+
+</body>
+</html>

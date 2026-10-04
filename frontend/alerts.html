@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Alertas | Detector NoSQL</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/styles.css"
+    >
+</head>
+
+<body>
+
+<div class="app-layout">
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                DA
+            </div>
+
+            <div>
+                <strong>Detector</strong>
+                <small>NoSQL Monitor</small>
+            </div>
+
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a
+                href="/dashboard"
+                class="nav-item"
+            >
+                Dashboard
+            </a>
+
+            <a
+                href="/events-page"
+                class="nav-item"
+            >
+                Eventos
+            </a>
+
+            <a
+                href="/alerts-page"
+                class="nav-item active"
+            >
+                Alertas
+            </a>
+
+            <a
+    href="/activity-analysis"
+    class="nav-item"
+>
+    Análisis de Actividad
+</a>
+
+<a
+    href="/users-page"
+    class="nav-item admin-nav-item"
+    style="display: none;"
+>
+    Usuarios
+</a>
+        </nav>
+
+
+        <button
+            onclick="logout()"
+            class="logout-button"
+        >
+            Cerrar sesión
+        </button>
+
+    </aside>
+
+
+    <!-- CONTENIDO -->
+
+    <main class="main-content">
+
+        <header class="topbar">
+
+            <div>
+                <h1>Alertas</h1>
+
+                <p>
+                    Anomalías detectadas por el sistema
+                </p>
+            </div>
+
+
+            <div class="user-box">
+
+                <span id="currentUsername">
+                    Usuario
+                </span>
+
+                <small id="currentRole"></small>
+
+            </div>
+
+        </header>
+
+
+        <!-- FILTROS -->
+
+        <section class="filters-card">
+
+            <div class="filter-group">
+
+                <label for="filterUser">
+                    Usuario
+                </label>
+
+                <input
+                    id="filterUser"
+                    type="text"
+                    placeholder="usuario01"
+                >
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="filterSeverity">
+                    Severidad
+                </label>
+
+                <select id="filterSeverity">
+
+                    <option value="">
+                        Todas
+                    </option>
+
+                    <option value="low">
+                        Baja
+                    </option>
+
+                    <option value="medium">
+                        Media
+                    </option>
+
+                    <option value="high">
+                        Alta
+                    </option>
+
+                    <option value="critical">
+                        Crítica
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="filterStatus">
+                    Estado
+                </label>
+
+                <select id="filterStatus">
+
+                    <option value="">
+                        Todos
+                    </option>
+
+                    <option value="pending">
+                        Pendiente
+                    </option>
+
+                    <option value="reviewed">
+                        Revisada
+                    </option>
+
+                    <option value="resolved">
+                        Resuelta
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="filterOperation">
+                    Operación
+                </label>
+
+                <select id="filterOperation">
+
+                    <option value="">
+                        Todas
+                    </option>
+
+                    <option value="READ">
+                        READ
+                    </option>
+
+                    <option value="INSERT">
+                        INSERT
+                    </option>
+
+                    <option value="UPDATE">
+                        UPDATE
+                    </option>
+
+                    <option value="DELETE">
+                        DELETE
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-actions">
+
+                <button
+                    id="applyFilters"
+                    class="primary-button table-button"
+                >
+                    Filtrar
+                </button>
+
+                <button
+                    id="clearFilters"
+                    class="secondary-button"
+                >
+                    Limpiar
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- RESUMEN -->
+
+        <section class="events-summary">
+
+            <span>
+                Mostrando
+                <strong id="alertCount">
+                    0
+                </strong>
+                alertas
+            </span>
+
+            <button
+                id="refreshAlerts"
+                class="secondary-button"
+            >
+                Actualizar
+            </button>
+
+        </section>
+
+
+        <!-- TABLA -->
+
+        <section class="table-card">
+
+            <div class="table-wrapper">
+
+                <table class="data-table alerts-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Operación</th>
+                            <th>Tipo</th>
+                            <th>Score</th>
+                            <th>Severidad</th>
+                            <th>Estado</th>
+                            <th>Repeticiones</th>
+                            <th>Acciones</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="alertsTableBody">
+
+                        <tr>
+
+                            <td
+                                colspan="9"
+                                class="empty-table"
+                            >
+                                Cargando alertas...
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<!-- MODAL DETALLE -->
+
+<div
+    id="alertModal"
+    class="modal"
+>
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2>
+                    Detalle de alerta
+                </h2>
+
+                <small id="modalAlertId"></small>
+
+            </div>
+
+            <button
+                id="closeModal"
+                class="modal-close"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-grid">
+
+            <div class="detail-item">
+                <span>Usuario</span>
+                <strong id="modalUser">
+                    -
+                </strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Operación</span>
+                <strong id="modalOperation">
+                    -
+                </strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Colección</span>
+                <strong id="modalCollection">
+                    -
+                </strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Registros afectados</span>
+                <strong id="modalRecords">
+                    -
+                </strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Puntuación</span>
+                <strong id="modalScore">
+                    -
+                </strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Severidad</span>
+                <div id="modalSeverity">
+                    -
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="modal-section">
+
+            <h3>
+                Motivos de detección
+            </h3>
+
+            <div id="modalReasons"></div>
+
+        </div>
+
+
+        <div class="modal-section">
+
+            <h3>
+                Evidencia
+            </h3>
+
+            <div id="modalEvidence"></div>
+
+        </div>
+
+
+        <div class="modal-section">
+
+            <h3>
+                Estado de la alerta
+            </h3>
+
+            <div class="status-actions">
+
+                <button
+                    class="status-button status-pending"
+                    data-status="pending"
+                >
+                    Pendiente
+                </button>
+
+                <button
+                    class="status-button status-reviewed"
+                    data-status="reviewed"
+                >
+                    Marcar revisada
+                </button>
+
+                <button
+                    class="status-button status-resolved"
+                    data-status="resolved"
+                >
+                    Marcar resuelta
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script src="/static/js/auth.js"></script>
+<script src="/static/js/alerts.js"></script>
+
+</body>
+</html>

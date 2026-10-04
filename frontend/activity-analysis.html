@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Análisis de Actividad | Detector NoSQL
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/styles.css"
+    >
+
+</head>
+
+
+<body>
+
+<div class="app-layout">
+
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                DA
+            </div>
+
+            <div>
+
+                <strong>
+                    Detector
+                </strong>
+
+                <small>
+                    NoSQL Monitor
+                </small>
+
+            </div>
+
+        </div>
+
+
+<nav class="sidebar-nav">
+
+    <a
+        href="/dashboard"
+        class="nav-item"
+    >
+        Dashboard
+    </a>
+
+    <a
+        href="/events-page"
+        class="nav-item"
+    >
+        Eventos
+    </a>
+
+    <a
+        href="/alerts-page"
+        class="nav-item"
+    >
+        Alertas
+    </a>
+
+    <a
+        href="/activity-analysis"
+        class="nav-item active"
+    >
+        Análisis de Actividad
+    </a>
+
+    <a
+        href="/users-page"
+        class="nav-item admin-nav-item"
+        style="display: none;"
+    >
+        Usuarios
+    </a>
+
+</nav>
+
+
+        <button
+            onclick="logout()"
+            class="logout-button"
+        >
+            Cerrar sesión
+        </button>
+
+    </aside>
+
+
+
+    <!-- CONTENIDO -->
+
+    <main class="main-content">
+
+
+        <header class="topbar">
+
+            <div>
+
+                <h1>
+                    Análisis de Actividad
+                </h1>
+
+                <p>
+                    Análisis individual del
+                    comportamiento de usuarios
+                </p>
+
+            </div>
+
+
+            <div class="user-box">
+
+                <span id="currentUsername">
+                    Usuario
+                </span>
+
+                <small id="currentRole">
+                </small>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- SELECTORES -->
+
+        <section class="analysis-controls">
+
+
+            <div class="filter-group">
+
+                <label for="analysisUser">
+                    Usuario
+                </label>
+
+                <select id="analysisUser">
+
+                    <option value="">
+                        Seleccione usuario
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="analysisDate">
+                    Fecha
+                </label>
+
+                <input
+                    id="analysisDate"
+                    type="date"
+                >
+
+            </div>
+
+
+            <div class="filter-group">
+
+                <label for="historyDays">
+                    Comparar con
+                </label>
+
+                <select id="historyDays">
+
+                    <option value="7">
+                        7 días anteriores
+                    </option>
+
+                    <option value="14">
+                        14 días anteriores
+                    </option>
+
+                    <option value="30">
+                        30 días anteriores
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <button
+                id="analyzeButton"
+                class="primary-button analysis-button"
+            >
+                Analizar
+            </button>
+
+        </section>
+
+
+
+        <!-- MENSAJE INICIAL -->
+
+        <section
+            id="analysisEmpty"
+            class="analysis-empty"
+        >
+
+            Selecciona un usuario y una fecha
+            para comenzar el análisis.
+
+        </section>
+
+
+
+        <!-- RESULTADOS -->
+
+        <div
+            id="analysisResults"
+            class="analysis-results hidden"
+        >
+
+
+            <!-- RESUMEN -->
+
+            <section class="analysis-cards">
+
+
+                <article class="metric-card">
+
+                    <span>
+                        Eventos
+                    </span>
+
+                    <strong id="analysisTotal">
+                        0
+                    </strong>
+
+                </article>
+
+
+                <article class="metric-card">
+
+                    <span>
+                        Anomalías
+                    </span>
+
+                    <strong id="analysisAnomalies">
+                        0
+                    </strong>
+
+                </article>
+
+
+                <article class="metric-card">
+
+                    <span>
+                        Exitosos
+                    </span>
+
+                    <strong id="analysisSuccess">
+                        0
+                    </strong>
+
+                </article>
+
+
+                <article class="metric-card">
+
+                    <span>
+                        Fallidos
+                    </span>
+
+                    <strong id="analysisFailures">
+                        0
+                    </strong>
+
+                </article>
+
+
+                <article class="metric-card">
+
+                    <span>
+                        Registros afectados
+                    </span>
+
+                    <strong id="analysisRecords">
+                        0
+                    </strong>
+
+                </article>
+
+            </section>
+
+
+
+            <!-- OPERACIONES + HORAS -->
+
+            <section class="charts-grid">
+
+
+                <article class="chart-card">
+
+                    <h2>
+                        Operaciones del día
+                    </h2>
+
+                    <div class="chart-container">
+
+                        <canvas
+                            id="operationsAnalysisChart"
+                        ></canvas>
+
+                    </div>
+
+                </article>
+
+
+                <article class="chart-card">
+
+                    <h2>
+                        Actividad por hora
+                    </h2>
+
+                    <div class="chart-container">
+
+                        <canvas
+                            id="hourlyAnalysisChart"
+                        ></canvas>
+
+                    </div>
+
+                </article>
+
+            </section>
+
+
+
+            <!-- COMPARACIÓN -->
+
+            <section class="chart-card full-width">
+
+                <h2>
+                    Comparación con comportamiento histórico
+                </h2>
+
+                <div class="comparison-summary">
+
+                    <div>
+
+                        <span>
+                            Eventos del día
+                        </span>
+
+                        <strong id="comparisonCurrent">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Promedio histórico
+                        </span>
+
+                        <strong id="comparisonAverage">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Variación
+                        </span>
+
+                        <strong id="comparisonVariation">
+                            -
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="chart-container statistics-large">
+
+                    <canvas
+                        id="comparisonChart"
+                    ></canvas>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- CAMBIOS -->
+
+            <section class="analysis-insights-card">
+
+                <h2>
+                    Cambios importantes detectados
+                </h2>
+
+                <div id="analysisChanges">
+
+                    <p>
+                        No se detectaron cambios
+                        importantes.
+                    </p>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- HISTORIAL -->
+
+            <section class="table-card">
+
+                <div class="analysis-table-title">
+
+    <div>
+
+        <h2>
+            Historial del día
+        </h2>
+
+        <p>
+            Operaciones realizadas
+            durante la fecha seleccionada
+        </p>
+
+    </div>
+
+
+    <div class="history-table-controls">
+
+        <div class="history-filter">
+
+            <label for="analysisHistoryFilter">
+                Análisis
+            </label>
+
+            <select id="analysisHistoryFilter">
+
+                <option value="all">
+                    Todos
+                </option>
+
+                <option value="normal">
+                    Normales
+                </option>
+
+                <option value="anomalous">
+                    Anómalos
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <strong id="analysisEventCount">
+            0 eventos
+        </strong>
+
+    </div>
+
+</div>
+
+
+                <div class="table-wrapper">
+
+                    <table class="data-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Hora
+                                </th>
+
+                                <th>
+                                    Operación
+                                </th>
+
+                                <th>
+                                    Colección
+                                </th>
+
+                                <th>
+                                    Registros
+                                </th>
+
+                                <th>
+                                    Resultado
+                                </th>
+
+                                <th>
+                                    Análisis
+                                </th>
+
+                                <th>
+                                    Severidad
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="analysisEventsBody">
+
+                            <tr>
+
+                                <td
+                                    colspan="7"
+                                    class="empty-table"
+                                >
+                                    Sin datos
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/chart.js"
+></script>
+
+<script src="/static/js/auth.js"></script>
+
+<script src="/static/js/activity-analysis.js" ></script>
+
+</body>
+
+</html>

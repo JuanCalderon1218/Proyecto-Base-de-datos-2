@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Dashboard | Detector NoSQL</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/styles.css"
+    >
+
+</head>
+
+<body>
+
+<div class="app-layout">
+
+    <!-- Sidebar -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            <div class="brand-icon">
+                DA
+            </div>
+
+            <div>
+                <strong>Detector</strong>
+                <small>NoSQL Monitor</small>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <a
+                href="/dashboard"
+                class="nav-item active"
+            >
+                Dashboard
+            </a>
+
+            <a
+    href="/events-page"
+    class="nav-item"
+>
+    Eventos
+</a>
+
+            <a
+    href="/alerts-page"
+    class="nav-item"
+>
+    Alertas
+</a>
+
+           <a
+    href="/activity-analysis"
+    class="nav-item"
+>
+    Análisis de Actividad
+</a>
+
+<a
+    href="/users-page"
+    class="nav-item admin-nav-item"
+    style="display: none;"
+>
+    Usuarios
+</a>
+
+        </nav>
+
+        <button
+            onclick="logout()"
+            class="logout-button"
+        >
+            Cerrar sesión
+        </button>
+
+    </aside>
+
+
+    <!-- Contenido -->
+
+    <main class="main-content">
+
+        <header class="topbar">
+
+            <div>
+                <h1>Dashboard</h1>
+
+                <p>
+                    Monitoreo general del sistema
+                </p>
+            </div>
+
+            <div class="user-box">
+
+                <span id="currentUsername">
+                    Usuario
+                </span>
+
+                <small id="currentRole">
+                </small>
+
+            </div>
+
+        </header>
+
+
+        <!-- Tarjetas -->
+
+        <section class="cards-grid">
+
+            <article class="metric-card">
+
+                <span>
+                    Eventos analizados
+                </span>
+
+                <strong id="totalEvents">
+                    0
+                </strong>
+
+            </article>
+
+
+            <article class="metric-card">
+
+                <span>
+                    Alertas
+                </span>
+
+                <strong id="totalAlerts">
+                    0
+                </strong>
+
+            </article>
+
+
+            <article class="metric-card">
+
+                <span>
+                    Alertas críticas
+                </span>
+
+                <strong id="criticalAlerts">
+                    0
+                </strong>
+
+            </article>
+
+
+            <article class="metric-card">
+
+                <span>
+                    Pendientes
+                </span>
+
+                <strong id="pendingAlerts">
+                    0
+                </strong>
+
+            </article>
+
+        </section>
+
+
+        <!-- Gráficos primera fila -->
+
+        <section class="charts-grid">
+
+            <article class="chart-card">
+
+                <h2>
+                    Alertas por severidad
+                </h2>
+
+                <div class="chart-container">
+                    <canvas
+                        id="severityChart"
+                    ></canvas>
+                </div>
+
+            </article>
+
+
+            <article class="chart-card">
+
+                <h2>
+                    Eventos por operación
+                </h2>
+
+                <div class="chart-container">
+                    <canvas
+                        id="operationChart"
+                    ></canvas>
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <!-- Actividad diaria -->
+
+        <section class="chart-card full-width">
+
+            <h2>
+                Actividad de los últimos 7 días
+            </h2>
+
+            <div class="chart-container large">
+                <canvas
+                    id="dailyChart"
+                ></canvas>
+            </div>
+
+        </section>
+
+
+        <!-- Usuarios -->
+
+        <section class="chart-card full-width">
+
+            <h2>
+                Actividad por usuario
+            </h2>
+
+            <div class="chart-container large">
+                <canvas
+                    id="userChart"
+                ></canvas>
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/chart.js"
+></script>
+
+<script src="/static/js/auth.js"></script>
+<script src="/static/js/dashboard.js"></script>
+
+</body>
+</html>
