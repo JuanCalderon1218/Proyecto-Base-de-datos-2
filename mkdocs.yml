@@ -1,0 +1,16 @@
+site_name: Detector de Anomalías NoSQL
+site_description: Documentación técnica automática del sistema de detección de anomalías NoSQL
+repo_name: JuanCalderon1218/Proyecto-Base-de-datos-2
+repo_url: https://github.com/JuanCalderon1218/Proyecto-Base-de-datos-2
+
+theme:
+  name: mkdocs
+
+nav:
+  - Inicio: index.md
+  - Referencia técnica automática: referencia_api.md
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - fenced_code
