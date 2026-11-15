@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     # MongoDB
     mongo_uri: str = "mongodb://localhost:27017"
     mongo_db: str = "anomaly_detector"
+    redis_url: str | None = None
 
     # JWT
     secret_key: str
