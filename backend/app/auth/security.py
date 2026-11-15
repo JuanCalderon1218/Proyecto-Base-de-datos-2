@@ -123,8 +123,9 @@ async def get_current_user(
         )
 
         username = payload.get("sub")
+        session_id = payload.get("sid")
 
-        if username is None:
+        if username is None or session_id is None:
             raise credentials_exception
 
     except InvalidTokenError:
@@ -140,6 +141,18 @@ async def get_current_user(
     )
 
     if user is None:
+        raise credentials_exception
+
+    session = await database["sessions"].find_one(
+        {
+            "session_id": session_id,
+            "username": username,
+            "status": "active",
+            "expires_at": {"$gt": datetime.now(timezone.utc)},
+        }
+    )
+
+    if session is None:
         raise credentials_exception
 
     return user
