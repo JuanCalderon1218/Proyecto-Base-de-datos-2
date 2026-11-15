@@ -23,7 +23,11 @@ def main():
     )
     local_uri = os.getenv("LOCAL_MONGO_URI", "mongodb://127.0.0.1:27017")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    database_name = manifest["database"]
+    source_database_name = manifest["database"]
+    database_name = os.getenv(
+        "RESTORE_DATABASE",
+        source_database_name + "_restore",
+    )
 
     client = MongoClient(local_uri, serverSelectionTimeoutMS=20000)
     client.admin.command("ping")
@@ -94,7 +98,8 @@ def main():
     report = [
         "# Verificacion de restauracion MongoDB",
         "",
-        f"- Base de datos: {database_name}",
+        f"- Base de datos origen: {source_database_name}",
+        f"- Base de datos restaurada: {database_name}",
         f"- Version de origen: {manifest.get('source_server_version', 'No registrada')}",
         f"- Fecha del inventario: {manifest.get('generated_at', 'No registrada')}",
         f"- Colecciones de origen: {len(expected_collections)}",
