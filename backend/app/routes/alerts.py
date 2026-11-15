@@ -8,6 +8,7 @@ from backend.app.auth.security import get_current_user
 
 from backend.app.database.connection import database
 from backend.app.schemas.alert import AlertStatusUpdate
+from backend.app.observability import dashboard_cache
 
 
 router = APIRouter(
@@ -115,10 +116,11 @@ current_user=Depends(get_current_user)
         {
             "$set": {
                 "status": data.status,
-                "updated_at": datetime.utcnow(),
+                "updated_at": datetime.now().astimezone(),
             }
         },
     )
+    await dashboard_cache.clear("dashboard-summary")
 
     return {
         "message": (
