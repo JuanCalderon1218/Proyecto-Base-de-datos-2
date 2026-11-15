@@ -1,7 +1,24 @@
 # Infraestructura Terraform
 
-Esta configuracion utiliza el proveedor oficial de Render para describir
-un servicio web FastAPI como infraestructura como codigo.
+Esta configuracion utiliza el proveedor oficial de Render para crear un recurso
+Render Key Value gratuito, compatible con Redis, como infraestructura de apoyo
+para el Detector de Anomalias NoSQL.
+
+## Recurso administrado
+
+- Nombre: detector-nosql-cache
+- Tipo: Render Key Value
+- Plan: free
+- Region: virginia
+- Politica de memoria: allkeys_lru
+- Costo base estimado: USD 0/mes
+
+El recurso Free tiene limites de memoria y es volatil: su contenido puede perderse
+cuando Render reinicia o mantiene el servicio. Por ello debe utilizarse como cache,
+nunca como almacenamiento persistente.
+
+La aplicacion web principal permanece en su servicio Render Free existente.
+Este Terraform no crea un segundo Web Service ni cambia su plan.
 
 ## Seguridad
 
@@ -9,16 +26,13 @@ Los secretos no se guardan en Git. Terraform recibe:
 
 - RENDER_API_KEY
 - RENDER_OWNER_ID
-- TF_VAR_mongo_uri
-- TF_VAR_secret_key
-- TF_VAR_event_api_key
 
 desde GitHub Secrets.
 
-## Importante sobre costos
+La cadena interna de conexion se expone como output sensible y no debe publicarse.
 
-El recurso render_web_service del proveedor Terraform no ofrece el plan Free.
-La configuracion usa Starter y por eso el apply esta deshabilitado por defecto.
+## Ejecucion
 
-El workflow siempre ejecuta fmt, init y validate. El apply solo se ejecuta
-manualmente cuando el usuario marca apply_infrastructure=true.
+El workflow siempre ejecuta fmt, init y validate y genera reportes.
+La creacion real del recurso solo se ejecuta manualmente al marcar
+apply_infrastructure=true.
