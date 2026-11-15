@@ -1,4 +1,4 @@
-name: Backup automatico MongoDB
+name: Backup cifrado y restauracion MongoDB
 
 on:
   workflow_dispatch:
@@ -9,8 +9,19 @@ permissions:
   contents: read
 
 jobs:
-  backup:
-    runs-on: ubuntu-latest
+  backup-restore:
+    name: Respaldar, cifrar y verificar restauracion
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    env:
+      MONGO_DB: anomaly_detector
+      BACKUP_DIR: backup
+      BACKUP_ARCHIVE: backup/anomaly_detector.archive.gz
+      ENCRYPTED_BACKUP: backup/anomaly_detector.archive.gz.gpg
+      BACKUP_MANIFEST: backup/source-manifest.json
+      RESTORE_REPORT: backup/restore-verification.md
+      RESTORE_DATABASE: anomaly_detector_restore
 
     steps:
       - name: Descargar repositorio
@@ -21,76 +32,130 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Instalar dependencias
-        run: pip install pymongo dnspython
+      - name: Instalar dependencias Python
+        run: pip install pymongo==4.18.1 dnspython==2.8.0
 
-      - name: Generar backup de MongoDB Atlas
+      - name: Instalar MongoDB Database Tools
+        run: |
+          curl --fail --show-error --silent --location             https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2404-x86_64-100.20.1.tgz             --output /tmp/mongodb-database-tools.tgz
+          mkdir -p /tmp/mongodb-tools
+          tar -xzf /tmp/mongodb-database-tools.tgz -C /tmp/mongodb-tools
+          sudo install /tmp/mongodb-tools/mongodb-database-tools-ubuntu2404-x86_64-100.20.1/bin/mongodump /usr/local/bin/mongodump
+          sudo install /tmp/mongodb-tools/mongodb-database-tools-ubuntu2404-x86_64-100.20.1/bin/mongorestore /usr/local/bin/mongorestore
+          mongodump --version
+          mongorestore --version
+
+      - name: Comprobar secretos requeridos
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          BACKUP_ENCRYPTION_PASSWORD: ${{ secrets.BACKUP_ENCRYPTION_PASSWORD }}
+        run: |
+          test -n "$MONGO_URI" || (echo "Falta el secreto MONGO_URI." && exit 1)
+          test -n "$BACKUP_ENCRYPTION_PASSWORD" || (echo "Falta crear el secreto BACKUP_ENCRYPTION_PASSWORD." && exit 1)
+          echo "Los secretos requeridos estan configurados."
+
+      - name: Generar inventario de origen
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+        run: python scripts/create_backup_manifest.py
+
+      - name: Generar respaldo comprimido
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
         run: |
-          python - <<'PY'
-          import os
-          import gzip
-          from pathlib import Path
-          from datetime import datetime, timezone
+          mkdir -p "$BACKUP_DIR"
+          mongodump             --uri="$MONGO_URI"             --db="$MONGO_DB"             --archive="$BACKUP_ARCHIVE"             --gzip
+          test -s "$BACKUP_ARCHIVE"
+          sha256sum "$BACKUP_ARCHIVE" > backup/archive.sha256
+          echo "Respaldo comprimido generado correctamente."
 
-          from pymongo import MongoClient
-          from bson.json_util import dumps
+      - name: Cifrar respaldo con AES-256
+        env:
+          BACKUP_ENCRYPTION_PASSWORD: ${{ secrets.BACKUP_ENCRYPTION_PASSWORD }}
+        run: |
+          printf '%s' "$BACKUP_ENCRYPTION_PASSWORD" | gpg             --batch             --yes             --pinentry-mode loopback             --passphrase-fd 0             --symmetric             --cipher-algo AES256             --output "$ENCRYPTED_BACKUP"             "$BACKUP_ARCHIVE"
+          test -s "$ENCRYPTED_BACKUP"
+          gpg --batch --list-packets "$ENCRYPTED_BACKUP" | grep -q "symkey enc packet"
+          rm -f "$BACKUP_ARCHIVE"
+          echo "Cifrado AES-256 comprobado; archivo original sin cifrar eliminado."
 
-          client = MongoClient(os.environ["MONGO_URI"])
-          client.admin.command("ping")
+      - name: Iniciar MongoDB temporal para restauracion
+        run: |
+          docker run --detach             --name mongodb-restore-test             --publish 27017:27017             mongo:8.0.37             --bind_ip_all
+          for attempt in $(seq 1 30); do
+            if docker exec mongodb-restore-test mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q 1; then
+              echo "MongoDB temporal disponible."
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs mongodb-restore-test
+          exit 1
 
-          carpeta = Path("backup")
-          carpeta.mkdir(exist_ok=True)
+      - name: Descifrar respaldo en area temporal
+        env:
+          BACKUP_ENCRYPTION_PASSWORD: ${{ secrets.BACKUP_ENCRYPTION_PASSWORD }}
+        run: |
+          printf '%s' "$BACKUP_ENCRYPTION_PASSWORD" | gpg             --batch             --yes             --pinentry-mode loopback             --passphrase-fd 0             --decrypt             --output /tmp/anomaly_detector.restore.archive.gz             "$ENCRYPTED_BACKUP"
+          test -s /tmp/anomaly_detector.restore.archive.gz
+          sha256sum --check backup/archive.sha256
+          echo "Respaldo descifrado temporalmente y verificado."
 
-          ignorar = {"admin", "local", "config"}
-          bases = [
-              db for db in client.list_database_names()
-              if db not in ignorar
-          ]
+      - name: Restaurar en base aislada
+        run: |
+          mongorestore             --uri="mongodb://127.0.0.1:27017"             --archive=/tmp/anomaly_detector.restore.archive.gz             --gzip             --nsFrom="$MONGO_DB.*"             --nsTo="$RESTORE_DATABASE.*"
+          echo "Restauracion de prueba finalizada en $RESTORE_DATABASE."
 
-          reporte = [
-              "# Reporte de Backup MongoDB",
-              "",
-              f"Fecha UTC: {datetime.now(timezone.utc)}",
-              "Estado: COMPLETADO",
-              "",
-              "Bases respaldadas:"
-          ]
+      - name: Verificar documentos e indices restaurados
+        env:
+          LOCAL_MONGO_URI: mongodb://127.0.0.1:27017
+        run: python scripts/verify_backup_restore.py
 
-          for nombre_bd in bases:
-              db = client[nombre_bd]
-              carpeta_bd = carpeta / nombre_bd
-              carpeta_bd.mkdir(exist_ok=True)
+      - name: Eliminar archivo temporal descifrado
+        if: always()
+        run: |
+          rm -f /tmp/anomaly_detector.restore.archive.gz
+          docker rm --force mongodb-restore-test 2>/dev/null || true
 
-              for coleccion in db.list_collection_names():
-                  documentos = list(db[coleccion].find({}))
+      - name: Generar reporte de backup
+        if: always()
+        run: |
+          {
+            echo "# Reporte de backup y restauracion MongoDB"
+            echo
+            echo "- Fecha UTC: $(date -u '+%Y-%m-%d %H:%M:%S')"
+            echo "- Repositorio: ${{ github.repository }}"
+            echo "- Rama: ${{ github.ref_name }}"
+            echo "- Commit: ${{ github.sha }}"
+            echo "- Base de datos: $MONGO_DB"
+            echo "- Motor origen: MongoDB Atlas 8.0.37"
+            echo "- Herramientas: MongoDB Database Tools 100.20.1"
+            echo "- Cifrado: GPG simetrico AES-256"
+            echo "- Archivo publicado: anomaly_detector.archive.gz.gpg"
+            if [ -f "$ENCRYPTED_BACKUP" ]; then
+              echo "- Generacion del respaldo cifrado: SUPERADA"
+            else
+              echo "- Generacion del respaldo cifrado: NO COMPLETADA"
+            fi
+            if [ -f "$RESTORE_REPORT" ]; then
+              echo
+              cat "$RESTORE_REPORT"
+            else
+              echo
+              echo "- Verificacion de restauracion: NO COMPLETADA"
+            fi
+          } > backup/backup-report.md
 
-                  archivo = carpeta_bd / f"{coleccion}.json.gz"
-
-                  with gzip.open(
-                      archivo,
-                      "wt",
-                      encoding="utf-8"
-                  ) as f:
-                      f.write(dumps(documentos))
-
-                  reporte.append(
-                      f"- {nombre_bd}.{coleccion}: "
-                      f"{len(documentos)} documentos"
-                  )
-
-          (carpeta / "reporte.md").write_text(
-              "\n".join(reporte),
-              encoding="utf-8"
-          )
-
-          print("Backup completado correctamente")
-          PY
-
-      - name: Subir respaldo como artefacto
+      - name: Subir respaldo cifrado y reportes
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mongodb-backup-${{ github.run_number }}
-          path: backup/
+          name: mongodb-backup-cifrado-${{ github.run_number }}
+          path: |
+            backup/anomaly_detector.archive.gz.gpg
+            backup/source-manifest.json
+            backup/archive.sha256
+            backup/restore-verification.md
+            backup/backup-report.md
+          if-no-files-found: warn
           retention-days: 30
