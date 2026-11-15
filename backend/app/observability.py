@@ -125,9 +125,7 @@ class DashboardCache:
 
         if self._redis is not None:
             try:
-                if key is None:
-                    await self._redis.flushdb()
-                else:
+                if key is not None:
                     await self._redis.delete(key)
             except Exception as exc:
                 logger.warning(
@@ -186,8 +184,8 @@ class Metrics:
         self.latency_buckets["+Inf"] = 0
         self._recent_requests = deque()
 
-    def _prune_recent(self, now: float):
-        cutoff = now - 900
+    def _prune_recent(self, now_epoch: float):
+        cutoff = now_epoch - 900
         while self._recent_requests and self._recent_requests[0][0] < cutoff:
             self._recent_requests.popleft()
 
@@ -198,7 +196,7 @@ class Metrics:
         latency_seconds: float,
         path: str = "unknown",
     ):
-        now = time.monotonic()
+        now = time.time()
         latency = max(0.0, float(latency_seconds))
         status = int(status_code)
         method_name = str(method).upper()
@@ -226,7 +224,7 @@ class Metrics:
             self._prune_recent(now)
 
     def snapshot(self):
-        now = time.monotonic()
+        now = time.time()
 
         with self._lock:
             self._prune_recent(now)
@@ -285,7 +283,7 @@ class Metrics:
 
             uptime_seconds = max(
                 0.0,
-                now - self._started_monotonic,
+                time.monotonic() - self._started_monotonic,
             )
 
             return {
