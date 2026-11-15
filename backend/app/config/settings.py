@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     # API de eventos
     event_api_key: str
 
+    # Integraciones externas
+    github_token: str | None = None
+    github_repo: str = "JuanCalderon1218/Proyecto-Base-de-datos-2"
+    discord_webhook_url: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

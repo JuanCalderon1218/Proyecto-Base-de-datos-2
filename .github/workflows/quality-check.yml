@@ -1,0 +1,50 @@
+name: Calidad de codigo Python
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "scripts/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "scripts/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verificar sintaxis
+        run: python -m compileall -q backend scripts
+
+      - name: Generar reporte
+        run: |
+          echo "# Reporte de calidad Python" > reporte-calidad-python.md
+          echo "" >> reporte-calidad-python.md
+          echo "- Compilacion de sintaxis: SUPERADA" >> reporte-calidad-python.md
+          echo "- Python: 3.12" >> reporte-calidad-python.md
+          echo "- Commit: ${{ github.sha }}" >> reporte-calidad-python.md
+
+      - name: Subir reporte
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-calidad-python-${{ github.run_number }}
+          path: reporte-calidad-python.md
+          retention-days: 30

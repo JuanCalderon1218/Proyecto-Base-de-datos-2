@@ -1,17 +1,9 @@
-from fastapi import APIRouter
 from fastapi import APIRouter, Depends
 
 from backend.app.auth.security import get_current_user
-
 from backend.app.database.connection import database
-from fastapi import (
-    APIRouter,
-    Depends,
-)
+from backend.app.observability import dashboard_cache, logger
 
-from backend.app.auth.security import (
-    get_current_user,
-)
 
 router = APIRouter(
     prefix="/dashboard",
@@ -21,9 +13,21 @@ router = APIRouter(
 
 @router.get("/summary")
 async def dashboard_summary(
-    current_user=Depends(
-        get_current_user),
+    current_user=Depends(get_current_user),
 ):
+    cache_key = "dashboard-summary"
+
+    cached = dashboard_cache.get(cache_key)
+    if cached is not None:
+        logger.info(
+            "dashboard_summary cache_hit user=%s",
+            current_user["username"],
+        )
+        return {
+            **cached,
+            "cache": "hit",
+        }
+
     total_events = await database[
         "events"
     ].count_documents({})
@@ -72,7 +76,7 @@ async def dashboard_summary(
         }
     )
 
-    return {
+    summary = {
         "events": {
             "total": total_events,
             "anomalous": anomalous_events,
@@ -84,4 +88,19 @@ async def dashboard_summary(
             "resolved": resolved_alerts,
             "critical": critical_alerts,
         },
+    }
+
+    dashboard_cache.set(
+        cache_key,
+        summary,
+    )
+
+    logger.info(
+        "dashboard_summary cache_miss user=%s",
+        current_user["username"],
+    )
+
+    return {
+        **summary,
+        "cache": "miss",
     }

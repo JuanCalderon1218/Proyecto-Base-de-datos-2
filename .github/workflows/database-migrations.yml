@@ -1,0 +1,42 @@
+name: Migracion automatica MongoDB
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "database/**"
+      - "scripts/apply_mongo_migrations.py"
+
+permissions:
+  contents: read
+
+jobs:
+  migrar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install pymongo dnspython
+
+      - name: Aplicar migraciones MongoDB
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          MONGO_DB: anomaly_detector
+        run: python scripts/apply_mongo_migrations.py
+
+      - name: Subir reporte
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-migracion-mongodb-${{ github.run_number }}
+          path: reporte-migracion-mongodb.md
+          retention-days: 30
