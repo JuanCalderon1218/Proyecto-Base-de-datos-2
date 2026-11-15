@@ -9,6 +9,7 @@ on:
       - "scripts/**"
       - "tests/**"
       - "requirements.txt"
+      - ".github/workflows/quality-check.yml"
   push:
     branches:
       - main
