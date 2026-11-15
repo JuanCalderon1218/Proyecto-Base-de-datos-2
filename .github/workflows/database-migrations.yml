@@ -2,6 +2,13 @@ name: Migraciones MongoDB con Liquibase
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "database/liquibase/**"
+      - "scripts/verify_liquibase_migrations.py"
+      - ".github/workflows/database-migrations.yml"
 
 permissions:
   contents: read
@@ -35,6 +42,9 @@ jobs:
           raw_uri = os.environ["MONGO_URI"].strip()
           database_name = os.environ["MONGO_DB"].strip()
 
+          if not raw_uri:
+              raise SystemExit("Falta configurar el secreto MONGO_URI.")
+
           parsed = urlsplit(raw_uri)
           if parsed.scheme not in ("mongodb", "mongodb+srv") or not parsed.netloc:
               raise SystemExit("MONGO_URI debe ser una URI mongodb:// o mongodb+srv:// valida.")
@@ -50,7 +60,7 @@ jobs:
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
               env_file.write("LIQUIBASE_MONGO_URL=" + liquibase_uri + "\n")
 
-          print("URI preparada para la base de datos configurada. El secreto no se muestra.")
+          print("URI preparada. El secreto no se muestra en los logs.")
           PY
 
       - name: Validar changelog
@@ -102,13 +112,14 @@ jobs:
             echo "- Indice sessions.username + started_at"
             echo "- Indice integration_history.alert_id + created_at"
             echo
-            echo "El changelog solo crea o asegura indices. No contiene operaciones DROP ni eliminacion de documentos."
+            echo "El changelog no contiene operaciones DROP ni eliminacion de documentos."
           } > liquibase-report.md
 
-      - name: Subir reporte y logs
+      - name: Subir reportes de migracion
         uses: actions/upload-artifact@v4
         with:
           name: liquibase-report-${{ github.run_number }}
           path: |
             liquibase-report.md
+            liquibase-verification.md
           retention-days: 30
