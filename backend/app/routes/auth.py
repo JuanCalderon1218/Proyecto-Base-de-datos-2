@@ -2,6 +2,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from uuid import uuid4
 
+import jwt
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -16,6 +18,7 @@ from backend.app.auth.security import (
     authenticate_user,
     create_access_token,
     get_current_user,
+    oauth2_scheme,
 )
 from backend.app.config.settings import settings
 from backend.app.database.connection import database
@@ -104,15 +107,20 @@ async def login(
 @router.post("/logout")
 async def logout(
     current_user=Depends(get_current_user),
+    token: str = Depends(oauth2_scheme),
 ):
-    session = await database[
-        "sessions"
-    ].find_one(
+    payload = jwt.decode(
+        token,
+        settings.secret_key,
+        algorithms=[settings.jwt_algorithm],
+    )
+    session_id = payload.get("sid")
+    session = await database["sessions"].find_one(
         {
+            "session_id": session_id,
             "username": current_user["username"],
             "status": "active",
-        },
-        sort=[("started_at", -1)],
+        }
     )
 
     if session is not None:
