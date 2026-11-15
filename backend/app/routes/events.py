@@ -164,7 +164,7 @@ async def create_event(
         }
     )
 
-    dashboard_cache.clear()
+    await dashboard_cache.clear()
 
     logger.info(
         "event_processed event_id=%s anomalous=%s score=%s severity=%s",
