@@ -4,4 +4,11 @@ resource "render_keyvalue" "cache" {
   region            = "virginia"
   max_memory_policy = "allkeys_lru"
   persistence_mode  = "off"
+
+  ip_allow_list = [
+    {
+      cidr_block  = "0.0.0.0/0"
+      description = "GitHub Actions - Laboratorio 03"
+    }
+  ]
 }
