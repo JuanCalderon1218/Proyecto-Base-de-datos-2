@@ -102,6 +102,20 @@ jobs:
           print("API Key valida y RENDER_OWNER_ID pertenece a un workspace accesible.")
           PY
 
+      - name: Importar Key Value Free existente
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
+          RENDER_KEYVALUE_ID: red-dbru88rrjlhs73ck9vmg
+          TF_INPUT: "0"
+        run: |
+          if terraform state list | grep -qx 'render_keyvalue.cache'; then
+            echo "El Key Value ya esta registrado en el estado Terraform."
+          else
+            terraform import -input=false render_keyvalue.cache "$RENDER_KEYVALUE_ID"
+          fi
+
       - name: Generar reporte de pruebas
         run: |
           echo "# Reporte de pruebas Terraform" > ../../reporte-terraform.md
