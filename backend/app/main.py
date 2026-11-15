@@ -35,6 +35,9 @@ from backend.app.database.connection import (
 
 from backend.app.routes.events import router as events_router
 from backend.app.routes.alerts import router as alerts_router
+from backend.app.routes.integrations import (
+    router as integrations_router,
+)
 from backend.app.observability import logger, metrics
 
 
@@ -153,6 +156,7 @@ app.include_router(statistics_router)
 app.include_router(dashboard_router)
 app.include_router(events_router)
 app.include_router(alerts_router)
+app.include_router(integrations_router)
 
 
 @app.get(
