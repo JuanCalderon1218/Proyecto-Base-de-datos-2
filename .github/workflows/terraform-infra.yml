@@ -36,15 +36,25 @@ jobs:
           terraform_version: "1.9.8"
 
       - name: Recuperar estado Terraform anterior
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TF_STATE_PASSPHRASE: ${{ secrets.TF_STATE_PASSPHRASE }}
         run: |
-          RUN_ID=$(gh run list --workflow terraform-infra.yml --branch main --event workflow_dispatch --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
-          if [ -n "$RUN_ID" ]; then
-            gh run download "$RUN_ID" --name terraform-state -D infra/terraform
-          else
-            echo "No existe estado previo; se inicializa un estado nuevo."
-          fi
+          RUN_IDS=$(gh run list --workflow terraform-infra.yml --branch main --event workflow_dispatch --status success --limit 10 --json databaseId --jq '.[].databaseId')
+          for RUN_ID in $RUN_IDS; do
+            if gh run download "$RUN_ID" --name terraform-state -D . >/dev/null 2>&1; then
+              if [ -f terraform.tfstate.gpg ]; then
+                if [ -z "$TF_STATE_PASSPHRASE" ]; then
+                  echo "Falta el secreto TF_STATE_PASSPHRASE para descifrar el estado."
+                  exit 1
+                fi
+                gpg --batch --yes --pinentry-mode loopback --passphrase "$TF_STATE_PASSPHRASE" --decrypt -o terraform.tfstate terraform.tfstate.gpg
+                echo "Estado Terraform anterior recuperado."
+              fi
+              break
+            fi
+          done
 
       - name: Terraform fmt
         run: |
@@ -56,6 +66,41 @@ jobs:
 
       - name: Terraform validate
         run: terraform validate
+
+      - name: Verificar credenciales y workspace Render
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
+        run: |
+          test -n "$RENDER_API_KEY" || (echo "Falta RENDER_API_KEY" && exit 1)
+          test -n "$RENDER_OWNER_ID" || (echo "Falta RENDER_OWNER_ID" && exit 1)
+          curl --fail --silent --show-error             --header "Accept: application/json"             --header "Authorization: Bearer $RENDER_API_KEY"             "https://api.render.com/v1/owners?limit=100"             --output owners.json
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads(Path("owners.json").read_text(encoding="utf-8"))
+          expected = os.environ["RENDER_OWNER_ID"]
+
+          if isinstance(payload, dict):
+              entries = payload.get("owners", payload.get("data", []))
+          else:
+              entries = payload
+
+          found = False
+          for entry in entries:
+              owner = entry.get("owner", entry) if isinstance(entry, dict) else {}
+              if owner.get("id") == expected:
+                  found = True
+                  break
+
+          if not found:
+              raise SystemExit("RENDER_OWNER_ID no aparece entre los workspaces accesibles por la API Key.")
+
+          print("API Key valida y RENDER_OWNER_ID pertenece a un workspace accesible.")
+          PY
 
       - name: Generar reporte de pruebas
         run: |
@@ -72,33 +117,40 @@ jobs:
           echo "# Reporte de costos estimados" > ../../reporte-costos.md
           echo "" >> ../../reporte-costos.md
           echo "- Render Key Value Free: USD 0/mes." >> ../../reporte-costos.md
-          echo "- Limites: 25 MB RAM y 50 conexiones." >> ../../reporte-costos.md
           echo "- Render Web Service existente: se mantiene en su plan actual Free." >> ../../reporte-costos.md
           echo "- MongoDB Atlas: servicio externo existente; no se crea ni modifica." >> ../../reporte-costos.md
           echo "- GitHub Actions: sujeto a los minutos incluidos en el plan de GitHub." >> ../../reporte-costos.md
 
       - name: Terraform plan
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == true }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
         run: terraform plan -out=tfplan
 
+      - name: Verificar frase de cifrado del estado
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == true }}
+        env:
+          TF_STATE_PASSPHRASE: ${{ secrets.TF_STATE_PASSPHRASE }}
+        run: |
+          test -n "$TF_STATE_PASSPHRASE" || (echo "Agrega TF_STATE_PASSPHRASE antes de aplicar." && exit 1)
+
       - name: Terraform apply
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == true }}
         env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
+          TF_STATE_PASSPHRASE: ${{ secrets.TF_STATE_PASSPHRASE }}
         run: |
           terraform apply -auto-approve tfplan
           terraform state pull > terraform.tfstate
+          gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$TF_STATE_PASSPHRASE" --output terraform.tfstate.gpg terraform.tfstate
+          rm -f terraform.tfstate
 
-      - name: Subir estado Terraform
+      - name: Subir estado Terraform cifrado
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == true }}
         uses: actions/upload-artifact@v4
         with:
           name: terraform-state
-          path: infra/terraform/terraform.tfstate
+          path: infra/terraform/terraform.tfstate.gpg
           retention-days: 90
 
       - name: Subir reportes
