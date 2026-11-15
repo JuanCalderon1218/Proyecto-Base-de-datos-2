@@ -88,7 +88,7 @@ jobs:
 
       - name: Iniciar MongoDB temporal para restauracion
         run: |
-          docker run --detach             --name mongodb-restore-test             --publish 27017:27017             mongo:8.0.37             --bind_ip_all
+          docker run --detach             --name mongodb-restore-test             --publish 27017:27017             mongo:8.0             --bind_ip_all
           for attempt in $(seq 1 30); do
             if docker exec mongodb-restore-test mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q 1; then
               echo "MongoDB temporal disponible."
