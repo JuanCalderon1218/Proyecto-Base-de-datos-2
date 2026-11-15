@@ -7,19 +7,23 @@ on:
     paths:
       - "backend/**"
       - "scripts/**"
+      - "tests/**"
+      - "requirements.txt"
   push:
     branches:
       - main
     paths:
       - "backend/**"
       - "scripts/**"
+      - "tests/**"
+      - "requirements.txt"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  syntax:
+  quality:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,17 +34,28 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
 
       - name: Verificar sintaxis
-        run: python -m compileall -q backend scripts
+        run: python -m compileall -q backend scripts tests
 
-      - name: Ejecutar pruebas unitarias\n        run: python -m unittest discover -s tests -v\n\n      - name: Generar reporte
+      - name: Ejecutar pruebas unitarias
+        run: python -m unittest discover -s tests -v
+
+      - name: Generar reporte
         run: |
-          echo "# Reporte de calidad Python" > reporte-calidad-python.md
-          echo "" >> reporte-calidad-python.md
-          echo "- Compilacion de sintaxis: SUPERADA\n          echo "- Pruebas unitarias: SUPERADAS" >> reporte-calidad-python.md" >> reporte-calidad-python.md
-          echo "- Python: 3.12" >> reporte-calidad-python.md
-          echo "- Commit: ${{ github.sha }}" >> reporte-calidad-python.md
+          {
+            echo "# Reporte de calidad Python"
+            echo
+            echo "- Compilacion de sintaxis: SUPERADA"
+            echo "- Pruebas unitarias: SUPERADAS"
+            echo "- Python: 3.12"
+            echo "- Commit: ${{ github.sha }}"
+          } > reporte-calidad-python.md
 
       - name: Subir reporte
         uses: actions/upload-artifact@v4
