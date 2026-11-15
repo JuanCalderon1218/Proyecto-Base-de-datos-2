@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 
-from backend.app.auth.security import get_current_user
+from backend.app.auth.security import get_current_user, require_roles
 from backend.app.database.connection import database
-from backend.app.observability import dashboard_cache, logger
+from backend.app.observability import dashboard_cache, logger, metrics
 
 
 router = APIRouter(
@@ -17,7 +17,7 @@ async def dashboard_summary(
 ):
     cache_key = "dashboard-summary"
 
-    cached = dashboard_cache.get(cache_key)
+    cached = await dashboard_cache.get(cache_key)
     if cached is not None:
         logger.info(
             "dashboard_summary cache_hit user=%s",
@@ -90,7 +90,7 @@ async def dashboard_summary(
         },
     }
 
-    dashboard_cache.set(
+    await dashboard_cache.set(
         cache_key,
         summary,
     )
@@ -104,3 +104,13 @@ async def dashboard_summary(
         **summary,
         "cache": "miss",
     }
+
+
+
+@router.get("/usage")
+async def dashboard_usage(
+    current_user=Depends(require_roles("admin")),
+):
+    snapshot = metrics.snapshot()
+    snapshot["cache_backend"] = dashboard_cache.status()["backend"]
+    return snapshot
