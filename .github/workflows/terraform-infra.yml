@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       apply_infrastructure:
-        description: "Aplicar infraestructura Starter de Render (puede generar costo)"
+        description: "Crear el recurso Render Key Value Free (USD 0/mes)"
         required: true
         type: boolean
         default: false
@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   terraform:
@@ -34,6 +35,17 @@ jobs:
         with:
           terraform_version: "1.9.8"
 
+      - name: Recuperar estado Terraform anterior
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID=$(gh run list --workflow terraform-infra.yml --branch main --status success --limit 2 --json databaseId --jq '.[1].databaseId // empty')
+          if [ -n "$RUN_ID" ]; then
+            gh run download "$RUN_ID" --name terraform-state -D .
+          else
+            echo "No existe estado previo; se inicializa un estado nuevo."
+          fi
+
       - name: Terraform fmt
         run: |
           terraform fmt -recursive
@@ -45,34 +57,31 @@ jobs:
       - name: Terraform validate
         run: terraform validate
 
-      - name: Generar reporte de tests
+      - name: Generar reporte de pruebas
         run: |
           echo "# Reporte de pruebas Terraform" > ../../reporte-terraform.md
           echo "" >> ../../reporte-terraform.md
           echo "- terraform fmt: SUPERADO" >> ../../reporte-terraform.md
           echo "- terraform init: SUPERADO" >> ../../reporte-terraform.md
           echo "- terraform validate: SUPERADO" >> ../../reporte-terraform.md
+          echo "- Recurso: Render Key Value Free" >> ../../reporte-terraform.md
           echo "- Commit: ${{ github.sha }}" >> ../../reporte-terraform.md
 
       - name: Generar reporte de costos
         run: |
           echo "# Reporte de costos estimados" > ../../reporte-costos.md
           echo "" >> ../../reporte-costos.md
-          echo "Infraestructura Terraform propuesta:" >> ../../reporte-costos.md
-          echo "- Render Web Service Starter: USD 7/mes como costo base publicado." >> ../../reporte-costos.md
-          echo "- MongoDB Atlas: infraestructura actual externa a este Terraform." >> ../../reporte-costos.md
-          echo "- GitHub Actions: sujeto al plan y consumo de la cuenta." >> ../../reporte-costos.md
-          echo "" >> ../../reporte-costos.md
-          echo "El apply esta deshabilitado por defecto para evitar cargos accidentales." >> ../../reporte-costos.md
+          echo "- Render Key Value Free: USD 0/mes." >> ../../reporte-costos.md
+          echo "- Limites: 25 MB RAM y 50 conexiones." >> ../../reporte-costos.md
+          echo "- Render Web Service existente: se mantiene en su plan actual Free." >> ../../reporte-costos.md
+          echo "- MongoDB Atlas: servicio externo existente; no se crea ni modifica." >> ../../reporte-costos.md
+          echo "- GitHub Actions: sujeto a los minutos incluidos en el plan de GitHub." >> ../../reporte-costos.md
 
       - name: Terraform plan
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == true }}
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
-          TF_VAR_mongo_uri: ${{ secrets.MONGO_URI }}
-          TF_VAR_secret_key: ${{ secrets.SECRET_KEY }}
-          TF_VAR_event_api_key: ${{ secrets.EVENT_API_KEY }}
         run: terraform plan -out=tfplan
 
       - name: Terraform apply
@@ -80,10 +89,17 @@ jobs:
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
-          TF_VAR_mongo_uri: ${{ secrets.MONGO_URI }}
-          TF_VAR_secret_key: ${{ secrets.SECRET_KEY }}
-          TF_VAR_event_api_key: ${{ secrets.EVENT_API_KEY }}
-        run: terraform apply -auto-approve tfplan
+        run: |
+          terraform apply -auto-approve tfplan
+          terraform state pull > terraform.tfstate
+
+      - name: Subir estado Terraform
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-state
+          path: infra/terraform/terraform.tfstate
+          retention-days: 90
 
       - name: Subir reportes
         uses: actions/upload-artifact@v4
