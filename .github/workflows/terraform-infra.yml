@@ -143,6 +143,24 @@ jobs:
           TF_INPUT: "0"
         run: terraform plan -input=false -out=tfplan
 
+      - name: Guardar estado importado sin aplicar cambios
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == false }}
+        env:
+          TF_STATE_PASSPHRASE: ${{ secrets.TF_STATE_PASSPHRASE }}
+        run: |
+          test -n "$TF_STATE_PASSPHRASE" || (echo "Falta TF_STATE_PASSPHRASE" && exit 1)
+          terraform state pull > terraform.tfstate
+          gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$TF_STATE_PASSPHRASE" --output terraform.tfstate.gpg terraform.tfstate
+          rm -f terraform.tfstate
+
+      - name: Subir estado importado cifrado
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == false }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-state
+          path: infra/terraform/terraform.tfstate.gpg
+          retention-days: 90
+
       - name: Verificar frase de cifrado del estado
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == true }}
         env:
