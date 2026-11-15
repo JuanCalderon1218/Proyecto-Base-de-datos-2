@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+import time
 
 from backend.app.routes.analysis import (
     router as analysis_router,
@@ -34,6 +35,7 @@ from backend.app.database.connection import (
 
 from backend.app.routes.events import router as events_router
 from backend.app.routes.alerts import router as alerts_router
+from backend.app.observability import logger, metrics
 
 
 @asynccontextmanager
@@ -41,9 +43,7 @@ async def lifespan(app: FastAPI):
 
     await client.admin.command("ping")
 
-    print(
-        "MongoDB conectado correctamente"
-    )
+    logger.info("MongoDB conectado correctamente")
 
     await database["events"].create_index(
         [
@@ -75,6 +75,49 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan
 )
+
+
+@app.middleware("http")
+async def telemetry_middleware(
+    request,
+    call_next,
+):
+    started_at = time.perf_counter()
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        latency = time.perf_counter() - started_at
+        metrics.record(
+            request.method,
+            500,
+            latency,
+        )
+        logger.exception(
+            "request_error method=%s path=%s latency=%.6f",
+            request.method,
+            request.url.path,
+            latency,
+        )
+        raise
+
+    latency = time.perf_counter() - started_at
+
+    metrics.record(
+        request.method,
+        response.status_code,
+        latency,
+    )
+
+    logger.info(
+        "request method=%s path=%s status=%s latency=%.6f",
+        request.method,
+        request.url.path,
+        response.status_code,
+        latency,
+    )
+
+    return response
 
 PROJECT_ROOT = (
     Path(__file__)
@@ -133,6 +176,11 @@ async def health_check():
     return {
         "status": "ok"
     }
+
+
+@app.get("/metrics")
+async def telemetry_metrics():
+    return metrics.snapshot()
 
 
 @app.get("/health/db")
