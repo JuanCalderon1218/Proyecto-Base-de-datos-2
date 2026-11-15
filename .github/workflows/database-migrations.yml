@@ -30,6 +30,10 @@ jobs:
           cache: maven
           cache-dependency-path: database/liquibase/pom.xml
 
+      - name: Habilitar resolucion DNS SRV de MongoDB Atlas
+        run: |
+          echo "JAVA_TOOL_OPTIONS=--add-exports=jdk.naming.dns/com.sun.jndi.dns=java.naming" >> "$GITHUB_ENV"
+
       - name: Preparar URI de MongoDB Atlas
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
