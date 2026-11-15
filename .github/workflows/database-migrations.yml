@@ -62,7 +62,7 @@ jobs:
           ))
 
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
-              env_file.write("LIQUIBASE_MONGO_URL=" + liquibase_uri + "\n")
+              env_file.write("MONGO_LIQUIBASE_URL=" + liquibase_uri + "\n")
 
           print("URI preparada. El secreto no se muestra en los logs.")
           PY
