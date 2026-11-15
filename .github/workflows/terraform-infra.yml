@@ -139,6 +139,8 @@ jobs:
       - name: Terraform apply
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == true }}
         env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
           TF_STATE_PASSPHRASE: ${{ secrets.TF_STATE_PASSPHRASE }}
         run: |
           terraform apply -auto-approve tfplan
