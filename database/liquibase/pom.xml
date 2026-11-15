@@ -22,9 +22,7 @@
                 <version>${liquibase.version}</version>
                 <configuration>
                     <changeLogFile>changelog/db.changelog-master.xml</changeLogFile>
-                    <url>${env.LIQUIBASE_MONGO_URL}</url>
-                    <promptOnNonLocalDatabase>false</promptOnNonLocalDatabase>
-                    <showSummary>verbose</showSummary>
+                    <url>${env.MONGO_LIQUIBASE_URL}</url>
                 </configuration>
                 <dependencies>
                     <dependency>
