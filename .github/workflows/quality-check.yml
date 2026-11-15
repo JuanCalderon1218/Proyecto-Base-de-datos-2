@@ -34,11 +34,11 @@ jobs:
       - name: Verificar sintaxis
         run: python -m compileall -q backend scripts
 
-      - name: Generar reporte
+      - name: Ejecutar pruebas unitarias\n        run: python -m unittest discover -s tests -v\n\n      - name: Generar reporte
         run: |
           echo "# Reporte de calidad Python" > reporte-calidad-python.md
           echo "" >> reporte-calidad-python.md
-          echo "- Compilacion de sintaxis: SUPERADA" >> reporte-calidad-python.md
+          echo "- Compilacion de sintaxis: SUPERADA\n          echo "- Pruebas unitarias: SUPERADAS" >> reporte-calidad-python.md" >> reporte-calidad-python.md
           echo "- Python: 3.12" >> reporte-calidad-python.md
           echo "- Commit: ${{ github.sha }}" >> reporte-calidad-python.md
 
