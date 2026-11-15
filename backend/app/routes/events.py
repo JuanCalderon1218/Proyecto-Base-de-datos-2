@@ -28,6 +28,7 @@ from backend.app.schemas.event import (
 from backend.app.services.alert_service import (
     create_or_merge_alert,
 )
+from backend.app.observability import dashboard_cache, logger
 
 
 router = APIRouter(
@@ -161,6 +162,16 @@ async def create_event(
             "alert_id":
                 alert_id,
         }
+    )
+
+    dashboard_cache.clear()
+
+    logger.info(
+        "event_processed event_id=%s anomalous=%s score=%s severity=%s",
+        document["event_id"],
+        analysis["is_anomalous"],
+        analysis["score"],
+        analysis["severity"],
     )
 
     document["analysis"] = {
