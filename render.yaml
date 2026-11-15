@@ -17,6 +17,9 @@ services:
       - key: MONGO_DB
         value: anomaly_detector
 
+      - key: REDIS_URL
+        sync: false
+
       - key: SECRET_KEY
         generateValue: true
 
