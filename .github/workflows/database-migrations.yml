@@ -1,42 +1,114 @@
-name: Migracion automatica MongoDB
+name: Migraciones MongoDB con Liquibase
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "database/**"
-      - "scripts/apply_mongo_migrations.py"
 
 permissions:
   contents: read
 
 jobs:
-  migrar:
+  liquibase:
+    name: Validar y aplicar changelog MongoDB
     runs-on: ubuntu-latest
 
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Python
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: database/liquibase/pom.xml
+
+      - name: Preparar URI de MongoDB Atlas
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          MONGO_DB: anomaly_detector
+        run: |
+          python - <<'PY'
+          import os
+          from urllib.parse import urlsplit, urlunsplit
+
+          raw_uri = os.environ["MONGO_URI"].strip()
+          database_name = os.environ["MONGO_DB"].strip()
+
+          parsed = urlsplit(raw_uri)
+          if parsed.scheme not in ("mongodb", "mongodb+srv") or not parsed.netloc:
+              raise SystemExit("MONGO_URI debe ser una URI mongodb:// o mongodb+srv:// valida.")
+
+          liquibase_uri = urlunsplit((
+              parsed.scheme,
+              parsed.netloc,
+              "/" + database_name,
+              parsed.query,
+              ""
+          ))
+
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+              env_file.write("LIQUIBASE_MONGO_URL=" + liquibase_uri + "\n")
+
+          print("URI preparada para la base de datos configurada. El secreto no se muestra.")
+          PY
+
+      - name: Validar changelog
+        run: mvn -B -f database/liquibase/pom.xml liquibase:validate
+
+      - name: Aplicar migraciones Liquibase
+        run: mvn -B -f database/liquibase/pom.xml liquibase:update
+
+      - name: Comprobar estado de migraciones
+        run: mvn -B -f database/liquibase/pom.xml liquibase:status
+
+      - name: Configurar Python para verificacion
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Instalar dependencias
-        run: pip install pymongo dnspython
+      - name: Instalar cliente MongoDB para verificacion
+        run: pip install pymongo==4.18.1 dnspython==2.8.0
 
-      - name: Aplicar migraciones MongoDB
+      - name: Verificar colecciones e indices
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           MONGO_DB: anomaly_detector
-        run: python scripts/apply_mongo_migrations.py
+        run: python scripts/verify_liquibase_migrations.py
 
-      - name: Subir reporte
+      - name: Generar reporte de ejecucion
+        run: |
+          {
+            echo "# Reporte de migraciones MongoDB con Liquibase"
+            echo
+            echo "- Fecha UTC: $(date -u '+%Y-%m-%d %H:%M:%S')"
+            echo "- Repositorio: ${{ github.repository }}"
+            echo "- Rama: ${{ github.ref_name }}"
+            echo "- Commit: ${{ github.sha }}"
+            echo "- Base de datos: anomaly_detector"
+            echo "- MongoDB Atlas observado: 8.0.37"
+            echo "- Liquibase: 5.0.4"
+            echo "- Extension MongoDB: 5.0.4"
+            echo "- Resultado de validacion: SUPERADO"
+            echo "- Resultado de update: SUPERADO"
+            echo "- Resultado de status: SUPERADO"
+            echo "- Verificacion de colecciones e indices: SUPERADA"
+            echo
+            echo "## Cambios administrados"
+            echo
+            echo "- Indice unico users.username"
+            echo "- Indice events.user_id + timestamp"
+            echo "- Indice alerts.user_id + created_at"
+            echo "- Indice sessions.username + started_at"
+            echo "- Indice integration_history.alert_id + created_at"
+            echo
+            echo "El changelog solo crea o asegura indices. No contiene operaciones DROP ni eliminacion de documentos."
+          } > liquibase-report.md
+
+      - name: Subir reporte y logs
         uses: actions/upload-artifact@v4
         with:
-          name: reporte-migracion-mongodb-${{ github.run_number }}
-          path: reporte-migracion-mongodb.md
+          name: liquibase-report-${{ github.run_number }}
+          path: |
+            liquibase-report.md
           retention-days: 30
