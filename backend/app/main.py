@@ -9,7 +9,7 @@ from backend.app.routes.analysis import (
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from pymongo import ASCENDING, DESCENDING
 
 from backend.app.routes.users import (
@@ -38,13 +38,16 @@ from backend.app.routes.alerts import router as alerts_router
 from backend.app.routes.integrations import (
     router as integrations_router,
 )
-from backend.app.observability import logger, metrics
+from backend.app.observability import dashboard_cache, logger, metrics, should_track_request
+from backend.app.auth.security import require_roles
+from backend.app.config.settings import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
     await client.admin.command("ping")
+    await dashboard_cache.connect(settings.redis_url)
 
     logger.info("MongoDB conectado correctamente")
 
@@ -76,6 +79,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    await dashboard_cache.close()
     await client.close()
 
 
@@ -98,11 +102,15 @@ async def telemetry_middleware(
         response = await call_next(request)
     except Exception:
         latency = time.perf_counter() - started_at
-        metrics.record(
-            request.method,
-            500,
-            latency,
-        )
+        route = request.scope.get("route")
+        route_path = getattr(route, "path", request.url.path)
+        if should_track_request(route_path):
+            metrics.record(
+                request.method,
+                500,
+                latency,
+                route_path,
+            )
         logger.exception(
             "request_error method=%s path=%s latency=%.6f",
             request.method,
@@ -113,11 +121,15 @@ async def telemetry_middleware(
 
     latency = time.perf_counter() - started_at
 
-    metrics.record(
-        request.method,
-        response.status_code,
-        latency,
-    )
+    route = request.scope.get("route")
+    route_path = getattr(route, "path", request.url.path)
+    if should_track_request(route_path):
+        metrics.record(
+            request.method,
+            response.status_code,
+            latency,
+            route_path,
+        )
 
     logger.info(
         "request method=%s path=%s status=%s latency=%.6f",
@@ -190,7 +202,9 @@ async def health_check():
 
 
 @app.get("/metrics")
-async def telemetry_metrics():
+async def telemetry_metrics(
+    current_user=Depends(require_roles("admin")),
+):
     return metrics.snapshot()
 
 
@@ -257,4 +271,14 @@ async def users_page():
     return FileResponse(
         FRONTEND_DIR
         / "users.html"
+    )
+
+@app.get(
+    "/usage-page",
+    include_in_schema=False,
+)
+async def usage_page():
+    return FileResponse(
+        FRONTEND_DIR
+        / "usage.html"
     )
