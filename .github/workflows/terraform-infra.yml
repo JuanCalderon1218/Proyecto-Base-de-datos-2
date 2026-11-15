@@ -39,9 +39,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          RUN_ID=$(gh run list --workflow terraform-infra.yml --branch main --status success --limit 2 --json databaseId --jq '.[1].databaseId // empty')
+          RUN_ID=$(gh run list --workflow terraform-infra.yml --branch main --event workflow_dispatch --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
           if [ -n "$RUN_ID" ]; then
-            gh run download "$RUN_ID" --name terraform-state -D .
+            gh run download "$RUN_ID" --name terraform-state -D infra/terraform
           else
             echo "No existe estado previo; se inicializa un estado nuevo."
           fi
