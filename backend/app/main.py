@@ -64,6 +64,13 @@ async def lifespan(app: FastAPI):
         ]
     )
 
+    await database["sessions"].create_index(
+        [
+            ("username", ASCENDING),
+            ("started_at", DESCENDING),
+        ]
+    )
+
     yield
 
     await client.close()
