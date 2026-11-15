@@ -1,0 +1,93 @@
+name: Terraform infraestructura y costos
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply_infrastructure:
+        description: "Aplicar infraestructura Starter de Render (puede generar costo)"
+        required: true
+        type: boolean
+        default: false
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/terraform/**"
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: infra/terraform
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Generar reporte de tests
+        run: |
+          echo "# Reporte de pruebas Terraform" > ../../reporte-terraform.md
+          echo "" >> ../../reporte-terraform.md
+          echo "- terraform fmt: SUPERADO" >> ../../reporte-terraform.md
+          echo "- terraform init: SUPERADO" >> ../../reporte-terraform.md
+          echo "- terraform validate: SUPERADO" >> ../../reporte-terraform.md
+          echo "- Commit: ${{ github.sha }}" >> ../../reporte-terraform.md
+
+      - name: Generar reporte de costos
+        run: |
+          echo "# Reporte de costos estimados" > ../../reporte-costos.md
+          echo "" >> ../../reporte-costos.md
+          echo "Infraestructura Terraform propuesta:" >> ../../reporte-costos.md
+          echo "- Render Web Service Starter: USD 7/mes como costo base publicado." >> ../../reporte-costos.md
+          echo "- MongoDB Atlas: infraestructura actual externa a este Terraform." >> ../../reporte-costos.md
+          echo "- GitHub Actions: sujeto al plan y consumo de la cuenta." >> ../../reporte-costos.md
+          echo "" >> ../../reporte-costos.md
+          echo "El apply esta deshabilitado por defecto para evitar cargos accidentales." >> ../../reporte-costos.md
+
+      - name: Terraform plan
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == true }}
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
+          TF_VAR_mongo_uri: ${{ secrets.MONGO_URI }}
+          TF_VAR_secret_key: ${{ secrets.SECRET_KEY }}
+          TF_VAR_event_api_key: ${{ secrets.EVENT_API_KEY }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform apply
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_infrastructure == true }}
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
+          TF_VAR_mongo_uri: ${{ secrets.MONGO_URI }}
+          TF_VAR_secret_key: ${{ secrets.SECRET_KEY }}
+          TF_VAR_event_api_key: ${{ secrets.EVENT_API_KEY }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Subir reportes
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-terraform-${{ github.run_number }}
+          path: |
+            reporte-terraform.md
+            reporte-costos.md
+          retention-days: 30
