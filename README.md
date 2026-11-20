@@ -14,7 +14,7 @@
 - Backup: GitHub Actions.
 - Release y despliegue: GitHub Actions + Render.
 
-**Última generación automática del README:** 2026-11-15 06:42 UTC
+**Última generación automática del README:** 2026-11-20 19:47 UTC
 
 ## Problemática
 
