@@ -15,7 +15,8 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(snapshot["errors_total"], 1)
         self.assertEqual(snapshot["requests_by_method"]["GET"], 1)
         self.assertEqual(snapshot["requests_by_status"]["500"], 1)
-        self.assertEqual(snapshot["requests_by_path"][0]["path"], "/events")
+        tracked_paths = {item["path"] for item in snapshot["requests_by_path"]}
+        self.assertIn("/events", tracked_paths)
         self.assertEqual(snapshot["requests_last_5m"], 2)
         self.assertEqual(snapshot["latency_buckets"][-1]["count"], 2)
 

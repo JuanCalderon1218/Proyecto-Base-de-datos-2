@@ -28,6 +28,7 @@ from backend.app.schemas.event import (
 from backend.app.services.alert_service import (
     create_or_merge_alert,
 )
+from backend.app.services.alert_integrations import dispatch_alert_integrations
 from backend.app.observability import dashboard_cache, logger
 
 
@@ -101,6 +102,7 @@ async def create_event(
 
     alert_id = None
     alert_merged = False
+    integration_results = {}
 
     # -------------------------
     # Generar alerta
@@ -122,6 +124,13 @@ async def create_event(
         alert_merged = alert_result[
             "merged"
         ]
+
+        # Notificar solo cuando se crea una alerta nueva.
+        # Si se agrupa con una alerta existente, se evitan mensajes repetidos.
+        if not alert_merged:
+            integration_results = await dispatch_alert_integrations(
+                alert_id
+            )
 
     # -------------------------
     # Marcar evento analizado
@@ -192,6 +201,9 @@ async def create_event(
 
         "alert_merged":
             alert_merged,
+
+        "integrations":
+            integration_results,
     }
 
     return document

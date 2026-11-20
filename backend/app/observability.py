@@ -204,6 +204,8 @@ class Metrics:
 
         with self._lock:
             self.requests_total += 1
+            if status >= 400:
+                self.errors_total += 1
             self.total_latency_seconds += latency
             self.max_latency_seconds = max(
                 self.max_latency_seconds,
