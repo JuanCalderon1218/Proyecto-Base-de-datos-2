@@ -8,9 +8,11 @@ theme:
 
 nav:
   - Inicio: index.md
+  - Integraciones y evidencias: integraciones.md
   - Referencia técnica automática: referencia_api.md
 
 markdown_extensions:
   - toc:
       permalink: true
   - fenced_code
+  - tables

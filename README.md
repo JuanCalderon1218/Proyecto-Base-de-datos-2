@@ -14,7 +14,7 @@
 - Backup: GitHub Actions.
 - Release y despliegue: GitHub Actions + Render.
 
-**Última generación automática del README:** 2026-11-20 19:47 UTC
+**Documentación:** generada desde el código y actualizada con las integraciones de noviembre de 2026.
 
 ## Problemática
 
@@ -47,12 +47,16 @@ Desarrollar un sistema web inteligente para detectar anomalías y comportamiento
 
 ```mermaid
 flowchart LR
-    SIM[Simulador de eventos] -->|HTTP + X-API-Key| API[FastAPI]
-    WEB[Navegador] -->|JWT| API
-    API --> DET[Motor de detección]
-    DET --> DB[(MongoDB Atlas)]
-    API --> DB
-    API --> FRONT[Dashboard web]
+    DBMON[(MongoDB Atlas: colección monitoreada)] -->|Change Streams| AGENTE[Agente Python local]
+    AGENTE -->|POST events + API Key| API[FastAPI en Render]
+    SIM[Simulador] -->|POST events + API Key| API
+    VSC[Extensión VS Code] -->|REST + JWT o API Key| API
+    WEB[Dashboard web] <-->|HTTPS + JWT| API
+    API --> MOTOR[Motor de detección]
+    MOTOR --> REG[(MongoDB Atlas: eventos y alertas)]
+    API --> INTEG[Integraciones automáticas]
+    INTEG --> DISCORD[Discord]
+    INTEG --> ISSUES[GitHub Issues: HIGH y CRITICAL]
 ```
 
 ## Estructura principal
@@ -69,8 +73,10 @@ backend/
     services/      Servicios de alertas
 frontend/          Dashboard y vistas web
 simulator/         Generador de eventos de prueba
+vscode-extension/  Extensión propia para VS Code y pruebas
 scripts/           Utilidades y automatizaciones
-Documentacion/     Visión, Factibilidad, SRS y SAD
+docs/              Portal de documentación en GitHub Pages
+Documentacion/     Informes académicos FD01-FD05 y anexos
 .github/workflows/ Automatizaciones GitHub Actions
 ```
 
@@ -133,6 +139,19 @@ MongoDB es una base documental y no aplica claves foráneas obligatorias como un
 | `event_timestamp` | datetime | Fecha del evento |
 | `created_at` | datetime | Fecha de creación |
 | `updated_at` | datetime | Fecha de actualización |
+
+### Colección `integration_history`
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `_id` | ObjectId | Identificador interno del historial |
+| `alert_id` | string | Identificador de la alerta vinculada |
+| `provider` | string | Proveedor: discord o github |
+| `status` | string/opcional | sent, created, skipped o failed para integraciones automáticas |
+| `result` | object | Respuesta o metadatos de la integración |
+| `error` | string/null | Motivo de omisión o error, cuando corresponde |
+| `executed_by` | string | system o usuario que invocó la integración |
+| `created_at` | datetime | Momento de ejecución registrado en UTC |
 
 
 ## Diagrama lógico de entidades
@@ -327,12 +346,9 @@ python simulator/simulator.py --mode demo
 
 ## Documentación académica
 
-La carpeta `Documentacion/` contiene los documentos del proyecto:
+La carpeta `Documentacion/` contiene los documentos académicos (Visión, Factibilidad, SRS, SAD, FD05, estándar y diccionario de datos). También incluye el **[Anexo FD05 de integraciones](Documentacion/FD05_Anexo_Integraciones_CALDERON_MANGO_2026.md)**, complemento posterior que preserva el PDF original.
 
-- Visión.
-- Factibilidad.
-- SRS.
-- SAD.
+La [extensión para Visual Studio Code](vscode-extension/README.md) dispone de instalación, configuración, pruebas y empaquetado propios.
 
 ## Fuentes base
 
@@ -343,3 +359,29 @@ La carpeta `Documentacion/` contiene los documentos del proyecto:
 ---
 
 Este README es actualizado mediante una automatización de GitHub Actions a partir de la estructura y documentación técnica del proyecto.
+
+## Reto de integraciones: Discord, GitHub Issues y Visual Studio Code
+
+La aplicación incorpora **tres puntos de integración demostrables**. Las dos primeras integraciones son acciones automáticas del backend ante una alerta nueva; la tercera es una extensión nativa de VS Code que consume la API existente. **Son integraciones de naturaleza diferente**, no tres sistemas de notificación.
+
+| Integración | Disparador y funcionamiento | Evidencia |
+|---|---|---|
+| **Discord** | Enviar aviso cuando se crea una alerta nueva y hay webhook configurado. | Registro `discord: sent` en `integration_history`. |
+| **GitHub Issues** | Crear Issue automáticamente si la severidad es **high** o **critical**. Para severidad baja/media se omite. | [Issue #6: CRITICAL, ALT-ED529A2F](https://github.com/JuanCalderon1218/Proyecto-Base-de-datos-2/issues/6). |
+| **Visual Studio Code** | La extensión **NoSQL Anomaly Monitor** consulta eventos/alertas y envía pruebas a `POST /events`. | [Código y guía de instalación](vscode-extension/README.md). |
+
+### Flujo verificado desde VS Code
+
+1. Abrir el panel **NoSQL Anomaly Monitor** e iniciar sesión con JWT para consultar el dashboard.
+2. Guardar la `EVENT_API_KEY` en **SecretStorage** para enviar eventos.
+3. Enviar una lectura normal (READ de 3 registros): **Score 0, NORMAL**, sin alerta.
+4. Enviar la prueba sintética DELETE de 1 500 registros: **MASS_DELETE, Score 75, CRITICAL**.
+5. Comprobar el evento `EVT-7F5D97E3`, la alerta `ALT-ED529A2F`, la notificación **Discord sent** y la incidencia **GitHub created** ([Issue #6](https://github.com/JuanCalderon1218/Proyecto-Base-de-datos-2/issues/6)).
+
+**Alcance:** las pruebas enviadas desde VS Code **no borran documentos reales**; registran eventos de prueba en la API. El agente Python separado utiliza **MongoDB Change Streams** para observar inserciones, actualizaciones y eliminaciones reales; las lecturas y operaciones fallidas requieren eventos instrumentados o simulados. El agente de pruebas continúa ejecutándose desde la PC mientras no se despliegue como servicio permanente.
+
+**Publicación:** la extensión funciona instalada por VSIX; el publicador del Marketplace es `calderonmango`. La disponibilidad pública debe comprobarse en Microsoft, sin asumir que la revisión ya terminó.
+
+**Documentación adicional:** [Guía técnica e integraciones en GitHub Pages](https://juancalderon1218.github.io/Proyecto-Base-de-datos-2/integraciones/) · [Anexo académico FD05](Documentacion/FD05_Anexo_Integraciones_CALDERON_MANGO_2026.md).
+
+---
