@@ -1,18 +1,37 @@
 {
   "name": "nosql-anomaly-monitor",
   "displayName": "NoSQL Anomaly Monitor",
-  "description": "Extensión de VS Code para monitorear eventos, alertas y probar el Detector de Anomalías NoSQL.",
-  "version": "1.0.0",
+  "description": "Detecta y analiza anomalías NoSQL desde VS Code: eventos, alertas, Score, Discord y GitHub Issues con FastAPI y MongoDB Atlas.",
+  "version": "1.0.1",
   "publisher": "calderonmango",
-  "private": true,
   "license": "MIT",
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Other", "Visualization"],
-  "keywords": ["MongoDB", "NoSQL", "FastAPI", "monitor", "anomalías", "alertas"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "MongoDB",
+    "NoSQL",
+    "FastAPI",
+    "monitor",
+    "anomalías",
+    "alertas"
+  ],
   "main": "./src/extension.js",
-  "extensionKind": ["ui"],
-  "activationEvents": ["onView:nosqlMonitor.sidebar", "onCommand:nosqlMonitor.openPanel"],
-  "repository": {"type":"git", "url":"https://github.com/JuanCalderon1218/Proyecto-Base-de-datos-2"},
+  "extensionKind": [
+    "ui"
+  ],
+  "activationEvents": [
+    "onView:nosqlMonitor.sidebar",
+    "onCommand:nosqlMonitor.openPanel"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JuanCalderon1218/Proyecto-Base-de-datos-2"
+  },
   "contributes": {
     "configuration": {
       "title": "NoSQL Anomaly Monitor",
@@ -31,37 +50,101 @@
     },
     "viewsContainers": {
       "activitybar": [
-        {"id":"nosqlMonitor", "title":"NoSQL Monitor", "icon":"resources/icon.svg"}
+        {
+          "id": "nosqlMonitor",
+          "title": "NoSQL Monitor",
+          "icon": "resources/icon.svg"
+        }
       ]
     },
     "views": {
       "nosqlMonitor": [
-        {"id":"nosqlMonitor.sidebar", "name":"Detector NoSQL", "contextualTitle":"NoSQL Anomaly Monitor"}
+        {
+          "id": "nosqlMonitor.sidebar",
+          "name": "Detector NoSQL",
+          "contextualTitle": "NoSQL Anomaly Monitor"
+        }
       ]
     },
     "commands": [
-      {"command":"nosqlMonitor.openPanel", "title":"NoSQL: Abrir panel de monitoreo", "icon":"$(dashboard)"},
-      {"command":"nosqlMonitor.refresh", "title":"NoSQL: Actualizar alertas", "icon":"$(refresh)"},
-      {"command":"nosqlMonitor.checkHealth", "title":"NoSQL: Comprobar conexión", "icon":"$(plug)"},
-      {"command":"nosqlMonitor.setApiUrl", "title":"NoSQL: Configurar URL de FastAPI"},
-      {"command":"nosqlMonitor.setApiKey", "title":"NoSQL: Guardar API Key de eventos"},
-      {"command":"nosqlMonitor.login", "title":"NoSQL: Iniciar sesión JWT"},
-      {"command":"nosqlMonitor.logout", "title":"NoSQL: Cerrar sesión JWT"},
-      {"command":"nosqlMonitor.sendNormal", "title":"NoSQL: Enviar prueba normal"},
-      {"command":"nosqlMonitor.sendCritical", "title":"NoSQL: Enviar prueba crítica (simulada)"},
-      {"command":"nosqlMonitor.openIssues", "title":"NoSQL: Abrir GitHub Issues"},
-      {"command":"nosqlMonitor.openDashboard", "title":"NoSQL: Abrir dashboard web"},
-      {"command":"nosqlMonitor.openAlert", "title":"NoSQL: Ver detalle de alerta"}
+      {
+        "command": "nosqlMonitor.openPanel",
+        "title": "NoSQL: Abrir panel de monitoreo",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "nosqlMonitor.refresh",
+        "title": "NoSQL: Actualizar alertas",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "nosqlMonitor.checkHealth",
+        "title": "NoSQL: Comprobar conexión",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "nosqlMonitor.setApiUrl",
+        "title": "NoSQL: Configurar URL de FastAPI"
+      },
+      {
+        "command": "nosqlMonitor.setApiKey",
+        "title": "NoSQL: Guardar API Key de eventos"
+      },
+      {
+        "command": "nosqlMonitor.login",
+        "title": "NoSQL: Iniciar sesión JWT"
+      },
+      {
+        "command": "nosqlMonitor.logout",
+        "title": "NoSQL: Cerrar sesión JWT"
+      },
+      {
+        "command": "nosqlMonitor.sendNormal",
+        "title": "NoSQL: Enviar prueba normal"
+      },
+      {
+        "command": "nosqlMonitor.sendCritical",
+        "title": "NoSQL: Enviar prueba crítica (simulada)"
+      },
+      {
+        "command": "nosqlMonitor.openIssues",
+        "title": "NoSQL: Abrir GitHub Issues"
+      },
+      {
+        "command": "nosqlMonitor.openDashboard",
+        "title": "NoSQL: Abrir dashboard web"
+      },
+      {
+        "command": "nosqlMonitor.openAlert",
+        "title": "NoSQL: Ver detalle de alerta"
+      }
     ],
     "menus": {
       "view/title": [
-        {"command":"nosqlMonitor.refresh", "when":"view == nosqlMonitor.sidebar", "group":"navigation"},
-        {"command":"nosqlMonitor.openPanel", "when":"view == nosqlMonitor.sidebar", "group":"navigation"}
+        {
+          "command": "nosqlMonitor.refresh",
+          "when": "view == nosqlMonitor.sidebar",
+          "group": "navigation"
+        },
+        {
+          "command": "nosqlMonitor.openPanel",
+          "when": "view == nosqlMonitor.sidebar",
+          "group": "navigation"
+        }
       ]
     }
   },
   "scripts": {
     "test": "node --test tests/*.test.js",
     "check": "node --check src/api.js && node --check src/extension.js && node --check src/view.js && node --check media/panel.js"
+  },
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#0A1B36",
+    "theme": "dark"
+  },
+  "homepage": "https://github.com/JuanCalderon1218/Proyecto-Base-de-datos-2/tree/main/vscode-extension",
+  "bugs": {
+    "url": "https://github.com/JuanCalderon1218/Proyecto-Base-de-datos-2/issues"
   }
 }

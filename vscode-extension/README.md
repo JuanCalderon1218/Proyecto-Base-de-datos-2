@@ -1,8 +1,13 @@
-# NoSQL Anomaly Monitor para Visual Studio Code
+# NoSQL Anomaly Monitor — VS Code
+
+**Monitoriza eventos, consulta alertas y verifica el Score del Detector de Anomalías NoSQL desde Visual Studio Code.**
 
 Extensión propia del proyecto **Sistema Web Inteligente para la Detección de Anomalías NoSQL**. Conecta VS Code con FastAPI/MongoDB y muestra el historial de eventos y alertas desde el editor; permite enviar pruebas controladas y consultar las integraciones automáticas de Discord/GitHub Issues.
 
 ## Funciones
+
+![NoSQL Anomaly Monitor](resources/icon.png)
+
 
 - Panel integrado y botón propio en la barra lateral.
 - Comprobar `/health` y cambiar el destino entre Render y localhost.
@@ -13,10 +18,20 @@ Extensión propia del proyecto **Sistema Web Inteligente para la Detección de A
 - Abrir las incidencias de GitHub y el dashboard web.
 - Confirmación antes de enviar eventos sintéticos. **No modifica documentos reales de MongoDB:** solo registra eventos en el detector, que pueden crear alertas y notificaciones.
 
+## ¿Qué puedes hacer desde VS Code?
+
+- Consultar el dashboard de FastAPI/MongoDB Atlas, los eventos, las alertas y el historial de integraciones.
+- Ejecutar una prueba READ normal con **Score 0, NORMAL**.
+- Enviar una prueba sintética DELETE de 1500 registros y consultar el resultado **MASS_DELETE, Score 75, CRITICAL** (sujeto a reglas adicionales).
+- Consultar si Discord notificó y GitHub Issues creó una incidencia.
+- Utilizar `vscode.SecretStorage` para las credenciales JWT y la API Key.
+
+**Aviso:** los eventos del editor son sintéticos y no eliminan documentos de MongoDB, pero pueden activar notificaciones reales y crear Issues. La extensión requiere credenciales autorizadas de la API; no incluye acceso público a la base de datos de terceros.
+
 ## Instalación rápida
 
 1. En VS Code: **Extensiones** (`Ctrl+Shift+X`) → menú `...` → **Install from VSIX...**.
-2. Seleccionar `NoSQL_Anomaly_Monitor-1.0.0.vsix` y recargar VS Code si se solicita.
+2. Seleccionar `NoSQL_Anomaly_Monitor-1.0.1.vsix` y recargar VS Code si se solicita.
 3. En la barra lateral abrir el icono **NoSQL Monitor** → **Abrir panel completo**.
 4. Pulsa **Comprobar API**. La URL predeterminada es `https://detector-anomalias-nosql.onrender.com`.
 5. Pulsa **API Key** e ingresa el `EVENT_API_KEY` de Render (no el JWT; no publicarlo).
@@ -29,6 +44,10 @@ Extensión propia del proyecto **Sistema Web Inteligente para la Detección de A
 Abre esta carpeta `vscode-extension` en VS Code, presiona `F5` para iniciar **Extension Development Host** y utiliza la barra lateral NoSQL Monitor. No requiere `npm install` para ejecutar; solo usa APIs nativas de VS Code.
 
 Ejecuta `npm test` para las pruebas unitarias y `npm run check` para verificar sintaxis (requiere Node.js 18+ para la suite de tests).
+
+## Icono, descripción y publicación
+
+La ficha del Marketplace usa el icono PNG de 128 × 128 de `resources/icon.png`, este README y el archivo `CHANGELOG.md`. El publicador es `calderonmango`. El logo del perfil de publicador es distinto del icono de la extensión.
 
 ## Empaquetado oficial
 

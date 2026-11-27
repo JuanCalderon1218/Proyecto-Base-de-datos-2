@@ -11,8 +11,8 @@ import xml.etree.ElementTree as ET
 ROOT=Path(__file__).resolve().parents[1]
 manifest=json.loads((ROOT/'package.json').read_text(encoding='utf-8'))
 OUT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/(f"{manifest['name']}-{manifest['version']}.vsix")
-packaged=['package.json','README.md','LICENSE','src/api.js','src/extension.js','src/view.js',
-          'media/panel.css','media/panel.js','resources/icon.svg']
+packaged=['package.json','README.md','CHANGELOG.md','LICENSE','src/api.js','src/extension.js','src/view.js',
+          'media/panel.css','media/panel.js','resources/icon.svg','resources/icon.png']
 for f in packaged:
     if not (ROOT/f).is_file(): raise FileNotFoundError(ROOT/f)
 xml_escape=lambda s:escape(str(s), {'"':'&quot;',"'":'&apos;'})
@@ -37,11 +37,15 @@ meta=f'''<?xml version="1.0" encoding="utf-8"?>
  </Metadata>
  <Installation><InstallationTarget Id="Microsoft.VisualStudio.Code"/></Installation>
  <Dependencies/>
- <Assets><Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true"/></Assets>
+ <Assets><Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true"/>
+ <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true"/>
+ <Asset Type="Microsoft.VisualStudio.Services.Content.Changelog" Path="extension/CHANGELOG.md" Addressable="true"/>
+ <Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE" Addressable="true"/>
+ <Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/resources/icon.png" Addressable="true"/></Assets>
 </PackageManifest>'''
 ct={
  '.json':'application/json','.vsixmanifest':'text/xml','.js':'application/javascript',
- '.css':'text/css','.svg':'image/svg+xml','.md':'text/markdown','.txt':'text/plain'
+ '.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.md':'text/markdown','.txt':'text/plain'
 }
 ct_xml='<?xml version="1.0" encoding="utf-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+''.join(
     f'<Default Extension="{k}" ContentType="{v}"/>' for k,v in sorted(ct.items()))+'</Types>'
@@ -56,6 +60,8 @@ with ZipFile(OUT) as z:
     assert z.testzip() is None
     assert 'extension/package.json' in z.namelist()
     assert 'extension/src/extension.js' in z.namelist()
+    assert 'extension/README.md' in z.namelist()
+    assert 'extension/resources/icon.png' in z.namelist()
     parsed=json.loads(z.read('extension/package.json'))
     assert parsed['main']=='./src/extension.js'
     assert parsed['contributes']['viewsContainers']['activitybar']
