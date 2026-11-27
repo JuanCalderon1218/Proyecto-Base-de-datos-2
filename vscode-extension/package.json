@@ -1,0 +1,67 @@
+{
+  "name": "nosql-anomaly-monitor",
+  "displayName": "NoSQL Anomaly Monitor",
+  "description": "Extensión de VS Code para monitorear eventos, alertas y probar el Detector de Anomalías NoSQL.",
+  "version": "1.0.0",
+  "publisher": "calderonmango",
+  "private": true,
+  "license": "MIT",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other", "Visualization"],
+  "keywords": ["MongoDB", "NoSQL", "FastAPI", "monitor", "anomalías", "alertas"],
+  "main": "./src/extension.js",
+  "extensionKind": ["ui"],
+  "activationEvents": ["onView:nosqlMonitor.sidebar", "onCommand:nosqlMonitor.openPanel"],
+  "repository": {"type":"git", "url":"https://github.com/JuanCalderon1218/Proyecto-Base-de-datos-2"},
+  "contributes": {
+    "configuration": {
+      "title": "NoSQL Anomaly Monitor",
+      "properties": {
+        "nosqlMonitor.apiUrl": {
+          "type": "string",
+          "default": "https://detector-anomalias-nosql.onrender.com",
+          "description": "URL raíz de FastAPI. Solo HTTPS o localhost HTTP. No pegues contraseñas ni tokens aquí."
+        },
+        "nosqlMonitor.githubIssuesUrl": {
+          "type": "string",
+          "default": "https://github.com/JuanCalderon1218/Proyecto-Base-de-datos-2/issues",
+          "description": "Dirección de GitHub Issues del proyecto."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {"id":"nosqlMonitor", "title":"NoSQL Monitor", "icon":"resources/icon.svg"}
+      ]
+    },
+    "views": {
+      "nosqlMonitor": [
+        {"id":"nosqlMonitor.sidebar", "name":"Detector NoSQL", "contextualTitle":"NoSQL Anomaly Monitor"}
+      ]
+    },
+    "commands": [
+      {"command":"nosqlMonitor.openPanel", "title":"NoSQL: Abrir panel de monitoreo", "icon":"$(dashboard)"},
+      {"command":"nosqlMonitor.refresh", "title":"NoSQL: Actualizar alertas", "icon":"$(refresh)"},
+      {"command":"nosqlMonitor.checkHealth", "title":"NoSQL: Comprobar conexión", "icon":"$(plug)"},
+      {"command":"nosqlMonitor.setApiUrl", "title":"NoSQL: Configurar URL de FastAPI"},
+      {"command":"nosqlMonitor.setApiKey", "title":"NoSQL: Guardar API Key de eventos"},
+      {"command":"nosqlMonitor.login", "title":"NoSQL: Iniciar sesión JWT"},
+      {"command":"nosqlMonitor.logout", "title":"NoSQL: Cerrar sesión JWT"},
+      {"command":"nosqlMonitor.sendNormal", "title":"NoSQL: Enviar prueba normal"},
+      {"command":"nosqlMonitor.sendCritical", "title":"NoSQL: Enviar prueba crítica (simulada)"},
+      {"command":"nosqlMonitor.openIssues", "title":"NoSQL: Abrir GitHub Issues"},
+      {"command":"nosqlMonitor.openDashboard", "title":"NoSQL: Abrir dashboard web"},
+      {"command":"nosqlMonitor.openAlert", "title":"NoSQL: Ver detalle de alerta"}
+    ],
+    "menus": {
+      "view/title": [
+        {"command":"nosqlMonitor.refresh", "when":"view == nosqlMonitor.sidebar", "group":"navigation"},
+        {"command":"nosqlMonitor.openPanel", "when":"view == nosqlMonitor.sidebar", "group":"navigation"}
+      ]
+    }
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check src/api.js && node --check src/extension.js && node --check src/view.js && node --check media/panel.js"
+  }
+}
